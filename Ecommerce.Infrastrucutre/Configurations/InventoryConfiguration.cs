@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECommerce.Infrastructure.Data.Configurations;
+namespace ECommerce.Infrastructure.Configurations;
 
 public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
 {
@@ -18,5 +18,8 @@ public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
 
         builder.HasIndex(i => i.ProductId)
             .IsUnique();
+
+        builder.Property(i => i.RowVersion)
+            .IsRowVersion();
     }
 }

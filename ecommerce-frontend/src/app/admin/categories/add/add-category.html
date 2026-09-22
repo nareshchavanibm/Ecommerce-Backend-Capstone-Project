@@ -1,0 +1,49 @@
+<div class="form-container">
+
+  <h2>Add Category</h2>
+
+  @if (errorMessage) {
+
+  <p class="error-message">
+    {{ errorMessage }}
+  </p>
+
+  }
+
+  <form (ngSubmit)="addCategory()">
+
+    <div class="form-group">
+
+      <label for="categoryName">
+        Category Name
+      </label>
+
+      <input id="categoryName"
+             type="text"
+             name="categoryName"
+             [(ngModel)]="categoryName"
+             placeholder="Enter category name" />
+
+    </div>
+
+    <div class="buttons">
+
+      <button type="submit"
+              [disabled]="loading">
+
+        {{ loading ? 'Adding...' : 'Add Category' }}
+
+      </button>
+
+      <button type="button"
+              (click)="cancel()">
+
+        Cancel
+
+      </button>
+
+    </div>
+
+  </form>
+
+</div>

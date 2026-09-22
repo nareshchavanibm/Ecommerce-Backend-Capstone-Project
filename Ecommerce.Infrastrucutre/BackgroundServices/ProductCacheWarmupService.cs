@@ -2,19 +2,20 @@ using ECommerce.Application.DTOs.Products;
 using ECommerce.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ECommerce.Infrastructure.BackgroundServices;
 
 public class ProductCacheWarmupService : BackgroundService
 {
-    private readonly IProductService _productService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ProductCacheWarmupService> _logger;
 
     public ProductCacheWarmupService(
-        IProductService productService,
+        IServiceScopeFactory scopeFactory,
         ILogger<ProductCacheWarmupService> logger)
     {
-        _productService = productService;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -36,7 +37,10 @@ public class ProductCacheWarmupService : BackgroundService
                     PageSize = 10
                 };
 
-                await _productService.GetFilteredAsync(query);
+                using var scope = _scopeFactory.CreateScope();
+                var productService = scope.ServiceProvider.GetRequiredService<IProductService>();
+
+                await productService.GetFilteredAsync(query);
 
                 _logger.LogInformation("Warmed product list cache (page 1).");
             }

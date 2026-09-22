@@ -1,0 +1,58 @@
+.login-container {
+  width: 300px;
+  margin: 50px auto;
+}
+
+h2 {
+  text-align: center;
+}
+
+form div {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 8px 20px;
+}
+
+.error-message {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.signup-link {
+  text-align: center;
+  margin-top: 20px;
+}
+
+  .signup-link p {
+    margin-bottom: 8px;
+  }
+
+  .signup-link a {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    background: #000000;
+    color: #ffffff;
+    text-decoration: none;
+  }
+
+    .signup-link a:hover {
+      background: #ffffff;
+      color: #000000;
+    }

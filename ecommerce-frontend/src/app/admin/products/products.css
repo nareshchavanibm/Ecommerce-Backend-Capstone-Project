@@ -1,0 +1,77 @@
+.product-management {
+  width: 90%;
+  margin: 30px auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+  .page-header h2 {
+    margin-bottom: 5px;
+  }
+
+  .page-header p {
+    margin-top: 0;
+  }
+
+  .page-header button {
+    padding: 10px 20px;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    background: #000000;
+    color: #ffffff;
+    cursor: pointer;
+  }
+
+    .page-header button:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #000000;
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background: #000000;
+  color: #ffffff;
+}
+
+.actions {
+  white-space: nowrap;
+}
+
+  .actions button {
+    margin-right: 8px;
+    padding: 6px 12px;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #000000;
+    cursor: pointer;
+  }
+
+    .actions button:hover {
+      background: #000000;
+      color: #ffffff;
+    }
+
+.error-message {
+  font-weight: bold;
+}

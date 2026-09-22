@@ -1,0 +1,150 @@
+.orders-container {
+  display: grid;
+  grid-template-columns: repeat( auto-fill, minmax(300px, 1fr) );
+  gap: 20px;
+  margin-top: 20px;
+}
+
+
+/* Order Card */
+
+.order-card {
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+  /* Hover Effect */
+
+  .order-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+  }
+
+
+/* Order Header */
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 12px;
+}
+
+
+  /* Order ID */
+
+  .order-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #000000;
+  }
+
+
+  /* Status */
+
+  .order-header span {
+    padding: 5px 10px;
+    border: 1px solid #000000;
+    border-radius: 15px;
+    background: #ffffff;
+    color: #000000;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+
+/* Order Information */
+
+.order-card p {
+  margin: 10px 0;
+  color: #000000;
+  font-size: 14px;
+}
+
+
+/* Total */
+
+.order-card strong {
+  color: #000000;
+  font-size: 16px;
+}
+
+
+/* View Order Link */
+
+.order-card a {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: 1px solid #000000;
+  border-radius: 5px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+
+  /* View Order Hover */
+
+  .order-card a:hover {
+    background: #ffffff;
+    color: #000000;
+  }
+
+
+/* Empty Orders */
+
+.empty-orders {
+  text-align: center;
+  margin-top: 50px;
+  padding: 40px;
+  border: 1px solid #000000;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+
+  /* Empty Orders Heading */
+
+  .empty-orders h3 {
+    margin-bottom: 10px;
+    color: #000000;
+  }
+
+
+  /* Empty Orders Text */
+
+  .empty-orders p {
+    color: #000000;
+  }
+
+
+  /* Empty Orders Link */
+
+  .empty-orders a {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 16px;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    background: #000000;
+    color: #ffffff;
+    text-decoration: none;
+  }
+
+
+    /* Empty Orders Link Hover */
+
+    .empty-orders a:hover {
+      background: #ffffff;
+      color: #000000;
+    }

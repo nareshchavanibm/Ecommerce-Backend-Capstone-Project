@@ -1,0 +1,103 @@
+<div class="orders-container">
+
+  <div class="header">
+
+    <div>
+      <h2>Order Management</h2>
+      <p>Manage customer orders.</p>
+    </div>
+
+  </div>
+
+
+  @if (loading()) {
+
+  <p>Loading orders...</p>
+
+  }
+
+
+  @if (errorMessage()) {
+
+  <p class="error-message">
+    {{ errorMessage() }}
+  </p>
+
+  }
+
+
+  @if (!loading() && orders().length === 0) {
+
+  <p>No orders found.</p>
+
+  }
+
+
+  @if (!loading() && orders().length > 0) {
+
+  <table>
+
+    <thead>
+
+      <tr>
+        <th>Order ID</th>
+        <th>User ID</th>
+        <th>Order Date</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      @for (
+      order of pagedOrders();
+      track order.id
+      ) {
+
+      <tr>
+
+        <td>
+          {{ order.id }}
+        </td>
+
+        <td>
+          {{ order.userId }}
+        </td>
+
+        <td>
+          {{ order.orderDate | date }}
+        </td>
+
+        <td>
+          ₹{{ order.totalAmount }}
+        </td>
+
+        <td>
+          {{ order.status }}
+        </td>
+
+        <td>
+
+          <button type="button"
+                  (click)="viewOrder(order.id)">
+
+            View
+
+          </button>
+
+        </td>
+
+      </tr>
+
+      }
+
+    </tbody>
+
+  </table>
+
+  }
+
+</div>

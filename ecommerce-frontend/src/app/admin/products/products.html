@@ -1,0 +1,106 @@
+<div class="product-management">
+
+  <div class="page-header">
+
+    <div>
+      <h2>Product Management</h2>
+      <p>Manage products in the store.</p>
+    </div>
+
+    <button type="button"
+            (click)="addProduct()">
+
+      Add Product
+
+    </button>
+
+  </div>
+
+  @if (loading()) {
+
+  <p>Loading products...</p>
+
+  } @else if (errorMessage()) {
+
+  <p class="error-message">
+    {{ errorMessage() }}
+  </p>
+
+  } @else if (products().length === 0) {
+
+  <p>No products found.</p>
+
+  } @else {
+
+  <div class="table-container">
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        @for (product of products(); track product.id) {
+
+        <tr>
+
+          <td>
+            {{ product.id }}
+          </td>
+
+          <td>
+            {{ product.name }}
+          </td>
+
+          <td>
+            {{ product.description }}
+          </td>
+
+          <td>
+            {{ getCategoryName(product.categoryId) }}
+          </td>
+
+          <td>
+            ₹{{ product.price }}
+          </td>
+
+          <td class="actions">
+
+            <button type="button"
+                    (click)="editProduct(product.id)">
+
+              Edit
+
+            </button>
+
+            <button type="button"
+                    (click)="deleteProduct(product)">
+
+              Delete
+
+            </button>
+
+          </td>
+
+        </tr>
+
+        }
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+  }
+
+</div>

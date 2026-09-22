@@ -1,0 +1,27 @@
+.product-details {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+  .product-details h2 {
+    margin-top: 0;
+    font-size: 32px;
+  }
+
+  .product-details h3 {
+    font-size: 24px;
+  }
+
+  .product-details button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .product-details a {
+    text-decoration: none;
+  }

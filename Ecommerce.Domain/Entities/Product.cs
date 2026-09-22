@@ -20,4 +20,9 @@ public class Product
 
     public ICollection<OrderItem> OrderItems { get; set; }
         = new List<OrderItem>();
+
+    public byte[]? RowVersion { get; set; }
+
+    // soft-delete flag — when true product is available
+    public bool IsActive { get; set; } = true;
 }

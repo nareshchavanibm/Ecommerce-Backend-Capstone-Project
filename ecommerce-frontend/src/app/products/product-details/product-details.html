@@ -1,0 +1,64 @@
+@if (loading()) {
+
+<p>
+  Loading product...
+</p>
+
+}
+
+@else if (errorMessage()) {
+
+<p>
+  {{ errorMessage() }}
+</p>
+
+}
+
+@else if (product()) {
+
+<div class="product-details">
+
+  <h2>
+    {{ product()!.name }}
+  </h2>
+
+  <p>
+    {{ product()!.description }}
+  </p>
+
+  <p>
+    <strong>
+      Price:
+    </strong>
+
+    ₹{{ product()!.price }}
+  </p>
+
+
+  <button type="button"
+          (click)="addToCart()">
+
+    Add to Cart
+
+  </button>
+
+
+  @if (cartMessage()) {
+
+  <p class="cart-message">
+    {{ cartMessage() }}
+  </p>
+
+  }
+
+
+  <br>
+  <br>
+
+  <a routerLink="/products">
+    Back to Products
+  </a>
+
+</div>
+
+}

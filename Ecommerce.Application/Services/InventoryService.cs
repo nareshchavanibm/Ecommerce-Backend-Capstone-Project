@@ -58,8 +58,16 @@ public class InventoryService : IInventoryService
         }
 
         inventory.Quantity += dto.Quantity;
-
         await _inventoryRepository.UpdateAsync(inventory);
+        await _inventoryRepository.SaveChangesAsync();
+
+        // Ensure product is active when stock is added
+        if (inventory.Product != null && !inventory.Product.IsActive)
+        {
+            inventory.Product.IsActive = true;
+            // product entity is tracked by the same DbContext used by repository, so SaveChanges will persist
+            await _inventoryRepository.SaveChangesAsync();
+        }
 
         return true;
     }
@@ -90,6 +98,14 @@ public class InventoryService : IInventoryService
         inventory.Quantity -= dto.Quantity;
 
         await _inventoryRepository.UpdateAsync(inventory);
+        await _inventoryRepository.SaveChangesAsync();
+
+        // If inventory reaches zero, mark product as inactive
+        if (inventory.Quantity == 0 && inventory.Product != null)
+        {
+            inventory.Product.IsActive = false;
+            await _inventoryRepository.SaveChangesAsync();
+        }
 
         return true;
     }

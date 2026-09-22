@@ -1,0 +1,189 @@
+<h2>Create Account</h2>
+
+<form #signupForm="ngForm" (ngSubmit)="signup(signupForm)">
+
+  <!-- First Name -->
+
+  <div>
+    <label>First Name</label>
+
+    <input type="text"
+           [(ngModel)]="firstName"
+           name="firstName"
+           required
+           minlength="2"
+           maxlength="50"
+           #firstNameInput="ngModel" />
+
+    @if (firstNameInput.invalid && firstNameInput.touched) {
+
+    @if (firstNameInput.errors?.['required']) {
+    <p>First name is required.</p>
+    }
+
+    @if (firstNameInput.errors?.['minlength']) {
+    <p>First name must be at least 2 characters.</p>
+    }
+
+    @if (firstNameInput.errors?.['maxlength']) {
+    <p>First name cannot exceed 50 characters.</p>
+    }
+
+    }
+  </div>
+
+  <br>
+
+
+  <!-- Last Name -->
+
+  <div>
+    <label>Last Name</label>
+
+    <input type="text"
+           [(ngModel)]="lastName"
+           name="lastName"
+           required
+           minlength="2"
+           maxlength="50"
+           #lastNameInput="ngModel" />
+
+    @if (lastNameInput.invalid && lastNameInput.touched) {
+
+    @if (lastNameInput.errors?.['required']) {
+    <p>Last name is required.</p>
+    }
+
+    @if (lastNameInput.errors?.['minlength']) {
+    <p>Last name must be at least 2 characters.</p>
+    }
+
+    @if (lastNameInput.errors?.['maxlength']) {
+    <p>Last name cannot exceed 50 characters.</p>
+    }
+
+    }
+  </div>
+
+  <br>
+
+
+  <!-- Email -->
+
+  <div>
+    <label>Email</label>
+
+    <input type="email"
+           [(ngModel)]="email"
+           name="email"
+           required
+           maxlength="150"
+           email
+           #emailInput="ngModel" />
+
+    @if (emailInput.invalid && emailInput.touched) {
+
+    @if (emailInput.errors?.['required']) {
+    <p>Email is required.</p>
+    }
+
+    @if (emailInput.errors?.['email']) {
+    <p>Please provide a valid email address.</p>
+    }
+
+    @if (emailInput.errors?.['maxlength']) {
+    <p>Email cannot exceed 150 characters.</p>
+    }
+
+    }
+  </div>
+
+  <br>
+
+
+  <!-- Password -->
+
+  <div>
+    <label>Password</label>
+
+    <input type="password"
+           [(ngModel)]="password"
+           name="password"
+           required
+           minlength="8"
+           maxlength="100"
+           #passwordInput="ngModel" />
+
+    @if (passwordInput.invalid && passwordInput.touched) {
+
+    @if (passwordInput.errors?.['required']) {
+    <p>Password is required.</p>
+    }
+
+    @if (passwordInput.errors?.['minlength']) {
+    <p>Password must be at least 8 characters.</p>
+    }
+
+    @if (passwordInput.errors?.['maxlength']) {
+    <p>Password cannot exceed 100 characters.</p>
+    }
+
+    }
+  </div>
+
+  <br>
+
+
+  <!-- Confirm Password -->
+
+  <div>
+    <label>Confirm Password</label>
+
+    <input type="password"
+           [(ngModel)]="confirmPassword"
+           name="confirmPassword"
+           required
+           #confirmPasswordInput="ngModel" />
+
+    @if (confirmPasswordInput.touched &&
+    password !== confirmPassword) {
+
+    <p>Passwords do not match.</p>
+
+    }
+  </div>
+
+  <br>
+
+
+  <!-- Backend error -->
+  @if (errorMessage) {
+  <p>{{ errorMessage }}</p>
+  }
+
+
+  <!-- Success -->
+  @if (successMessage) {
+  <p>{{ successMessage }}</p>
+  }
+
+
+  <!-- Submit -->
+
+  <button type="submit"
+          [disabled]="signupForm.invalid || password !== confirmPassword">
+
+    Sign Up
+
+  </button>
+
+</form>
+
+
+<p>
+  Already have an account?
+
+  <a routerLink="/login">
+    Login
+  </a>
+</p>

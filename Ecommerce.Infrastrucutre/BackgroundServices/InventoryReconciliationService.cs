@@ -3,25 +3,23 @@ using ECommerce.Application.Interfaces.Repositories;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Threading;
 
 namespace ECommerce.Infrastructure.BackgroundServices;
 
 public class InventoryReconciliationService : BackgroundService
 {
-    private readonly IProductRepository _productRepository;
-    private readonly IInventoryService _inventoryService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<InventoryReconciliationService> _logger;
     private readonly IBackgroundTaskQueue _taskQueue;
 
     public InventoryReconciliationService(
-        IProductRepository productRepository,
-        IInventoryService inventoryService,
+        IServiceScopeFactory scopeFactory,
         IBackgroundTaskQueue taskQueue,
         ILogger<InventoryReconciliationService> logger)
     {
-        _productRepository = productRepository;
-        _inventoryService = inventoryService;
+        _scopeFactory = scopeFactory;
         _taskQueue = taskQueue;
         _logger = logger;
     }
@@ -36,7 +34,11 @@ public class InventoryReconciliationService : BackgroundService
         {
             try
             {
-                var products = await _productRepository.GetAllAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var productRepository = scope.ServiceProvider.GetRequiredService<IProductRepository>();
+                var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
+
+                var products = await productRepository.GetAllAsync();
 
                 foreach (var product in products)
                 {
@@ -47,7 +49,7 @@ public class InventoryReconciliationService : BackgroundService
                     {
                         try
                         {
-                            var inv = await _inventoryService.GetByProductIdAsync(id);
+                            var inv = await inventoryService.GetByProductIdAsync(id);
                             // Placeholder reconciliation logic: log current inventory
                             _logger.LogInformation("Reconciled product {ProductId}, inventory: {Inventory}", id, inv?.StockQuantity);
                         }

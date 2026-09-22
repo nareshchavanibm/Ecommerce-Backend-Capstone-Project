@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECommerce.Infrastructure.Data.Configurations;
+namespace ECommerce.Infrastructure.Configurations;
 
 public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
@@ -29,5 +29,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .WithOne(i => i.Product)
             .HasForeignKey<Inventory>(i => i.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // By default, filter out soft-deleted products
+        builder.HasQueryFilter(p => p.IsActive);
+
+        builder.Property(p => p.RowVersion)
+            .IsRowVersion();
     }
 }

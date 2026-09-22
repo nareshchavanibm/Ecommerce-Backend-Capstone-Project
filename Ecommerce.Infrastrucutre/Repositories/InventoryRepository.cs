@@ -5,26 +5,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Infrastructure.Repositories;
 
-public class InventoryRepository(
-    AppDbContext context) : IInventoryRepository
+public class InventoryRepository : IInventoryRepository
 {
-    public async Task<Inventory?> GetByProductIdAsync(
-        int productId)
+    private readonly AppDbContext _context;
+
+    public InventoryRepository(AppDbContext context)
     {
-        return await context.Inventories
-            .FirstOrDefaultAsync(
-                x => x.ProductId == productId);
+        _context = context;
+    }
+
+    public async Task<Inventory?> GetByProductIdAsync(int productId)
+    {
+        return await _context.Inventories
+            .Include(i => i.Product)
+            .FirstOrDefaultAsync(x => x.ProductId == productId);
     }
 
     public Task UpdateAsync(Inventory inventory)
     {
-        context.Inventories.Update(inventory);
+        _context.Inventories.Update(inventory);
 
         return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()
     {
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 }

@@ -14,6 +14,7 @@ public class CategoryService : ICategoryService
         _categoryRepository = categoryRepository;
     }
 
+
     public async Task<List<CategoryDto>> GetAllAsync()
     {
         var categories =
@@ -23,7 +24,9 @@ public class CategoryService : ICategoryService
             .Select(category => new CategoryDto
             {
                 Id = category.Id,
-                Name = category.Name
+                Name = category.Name,
+              
+                ProductCount = category.Products.Count
             })
             .ToList();
     }
@@ -41,7 +44,9 @@ public class CategoryService : ICategoryService
         return new CategoryDto
         {
             Id = category.Id,
-            Name = category.Name
+            Name = category.Name,
+
+            ProductCount = category.Products.Count
         };
     }
 

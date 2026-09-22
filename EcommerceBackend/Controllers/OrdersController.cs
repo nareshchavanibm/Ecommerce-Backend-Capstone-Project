@@ -115,4 +115,41 @@ public class OrdersController : ControllerBase
             return Forbid();
         }
     }
+
+    // ==========================================
+    // ADMIN ORDER MANAGEMENT
+    // ==========================================
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet]
+    public async Task<ActionResult<List<OrderDto>>> GetAllOrders()
+    {
+        var orders = await _orderService.GetAllAsync();
+
+        return Ok(orders);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:int}/status")]
+    public async Task<ActionResult<OrderDto>> UpdateOrderStatus(
+        int id,
+        UpdateOrderStatusDto dto)
+    {
+        try
+        {
+            var order =
+                await _orderService.UpdateStatusAsync(
+                    id,
+                    dto.Status);
+
+            return Ok(order);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new
+            {
+                message = ex.Message
+            });
+        }
+    }
 }

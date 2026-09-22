@@ -1,0 +1,132 @@
+<div class="inventory-container">
+
+  <div class="header">
+
+    <div>
+      <h2>Inventory Management</h2>
+      <p>Manage product stock levels.</p>
+    </div>
+
+    <button type="button"
+            (click)="loadInventory()">
+      Refresh
+    </button>
+
+  </div>
+
+
+  @if (loading()) {
+
+  <p>Loading inventory...</p>
+
+  }
+
+
+  @if (errorMessage()) {
+
+  <p class="error-message">
+    {{ errorMessage() }}
+  </p>
+
+  }
+
+
+  @if (
+  !loading() &&
+  inventories().length === 0
+  ) {
+
+  <p>No inventory records found.</p>
+
+  }
+
+
+  @if (
+  !loading() &&
+  inventories().length > 0
+  ) {
+
+  <table>
+
+    <thead>
+
+      <tr>
+        <th>Product</th>
+        <th>Current Stock</th>
+        <th>Reorder Level</th>
+        <th>Stock Status</th>
+        <th>Actions</th>
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      @for (
+      inventory of pagedInventories();
+      track inventory.productId
+      ) {
+
+      <tr>
+
+        <td>
+          {{ inventory.productName }}
+        </td>
+
+        <td>
+          {{ inventory.stockQuantity }}
+        </td>
+
+        <td>
+          {{ inventory.reorderLevel }}
+        </td>
+
+        <td>
+
+          @if (inventory.isLowStock) {
+
+          <strong>Low Stock</strong>
+
+          } @else {
+
+          <span>Normal</span>
+
+          }
+
+        </td>
+
+        <td>
+
+          <button type="button"
+                  (click)="addStock(inventory.productId)"
+                  [disabled]="
+                  actionProductId() === inventory.productId
+                ">
+
+            Add Stock
+
+          </button>
+
+          <button type="button"
+                  (click)="removeStock(inventory.productId)"
+                  [disabled]="
+                  actionProductId() === inventory.productId
+                ">
+
+            Remove Stock
+
+          </button>
+
+        </td>
+
+      </tr>
+
+      }
+
+    </tbody>
+
+  </table>
+
+  }
+
+</div>

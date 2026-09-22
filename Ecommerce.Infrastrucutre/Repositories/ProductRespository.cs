@@ -123,7 +123,10 @@ public class ProductRepository : IProductRepository
 
     public async Task DeleteAsync(Product product)
     {
-        _context.Products.Remove(product);
+        // Always perform a soft-delete: mark product as inactive
+        // This keeps historical relations intact and prevents accidental data loss.
+        product.IsActive = false;
+        _context.Products.Update(product);
         await _context.SaveChangesAsync();
     }
 
@@ -131,6 +134,16 @@ public class ProductRepository : IProductRepository
     {
         return await _context.Products
             .AnyAsync(p => p.Id == id);
+    }
+
+    public async Task<bool> IsReferencedByOrdersAsync(int productId)
+    {
+        return await _context.OrderItems.AnyAsync(oi => oi.ProductId == productId);
+    }
+
+    public async Task<bool> IsReferencedInCartsAsync(int productId)
+    {
+        return await _context.CartItems.AnyAsync(ci => ci.ProductId == productId);
     }
 }
 

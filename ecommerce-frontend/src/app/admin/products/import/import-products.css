@@ -1,0 +1,125 @@
+.import-container {
+  width: 600px;
+  max-width: 90%;
+  margin: 40px auto;
+}
+
+  .import-container h2 {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .import-container > p {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+.upload-section {
+  margin-bottom: 20px;
+}
+
+  .upload-section label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .upload-section input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #000000;
+  }
+
+.selected-file {
+  margin: 20px 0;
+  padding: 12px;
+  border: 1px solid #000000;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+  .buttons button {
+    padding: 10px 20px;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    background: #000000;
+    color: #ffffff;
+    cursor: pointer;
+  }
+
+    .buttons button:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+.error-message {
+  font-weight: bold;
+}
+
+.success-section {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #000000;
+}
+
+.success-message {
+  font-weight: bold;
+}
+
+.status-check-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #000000;
+}
+
+.status-check-section h3 {
+  margin-bottom: 12px;
+}
+
+.status-check-section label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.status-check-section input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #000000;
+  margin-bottom: 10px;
+}
+
+.status-check-section button {
+  padding: 10px 20px;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  background: #000000;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.status-check-section button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-result {
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid #000000;
+}
+
+.status-result p {
+  margin: 6px 0;
+}

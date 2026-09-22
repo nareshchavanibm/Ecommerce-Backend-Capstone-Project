@@ -10,4 +10,5 @@ public interface INotificationService
     Task NotifyProductUpdated(ProductDto product);
 
     Task NotifyProductDeleted(int productId);
+    Task NotifyImportProgress(string jobId, int percent, string message);
 }

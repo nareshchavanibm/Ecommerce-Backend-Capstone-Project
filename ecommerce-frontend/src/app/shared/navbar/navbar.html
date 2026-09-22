@@ -1,0 +1,37 @@
+<nav>
+  <div>
+    <a routerLink="/home">E-Commerce</a>
+  </div>
+
+  <div>
+    <a routerLink="/home">Home</a>
+    <a routerLink="/products">Products</a>
+
+    @if (authService.isLoggedIn()) {
+
+    @if (authService.getRole() === 'Admin') {
+
+    <a routerLink="/admin">Admin</a>
+
+    } @else {
+
+    <a routerLink="/cart">Cart</a>
+    <a routerLink="/orders">My Orders</a>
+
+    }
+
+    <button type="button"
+            (click)="logout()">
+      Logout
+    </button>
+
+    } @else {
+
+    <a routerLink="/login">Login</a>
+    <a routerLink="/signup">Sign Up</a>
+
+    }
+  </div>
+</nav>
+
+<hr>

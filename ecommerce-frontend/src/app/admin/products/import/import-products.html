@@ -1,0 +1,131 @@
+<div class="import-container">
+
+  <h2>Bulk Product Import</h2>
+
+  <p>
+    Upload a CSV or XLSX file to import multiple products.
+  </p>
+
+  <div class="upload-section">
+
+    <label for="productFile">
+      Select File
+    </label>
+
+    <input id="productFile"
+           type="file"
+           accept=".csv,.xlsx"
+           (change)="onFileSelected($event)" />
+
+  </div>
+
+  @if (selectedFile) {
+
+  <div class="selected-file">
+
+    <strong>Selected File:</strong>
+
+    {{ selectedFile.name }}
+
+  </div>
+
+  }
+
+  @if (errorMessage) {
+
+  <p class="error-message">
+    {{ errorMessage }}
+  </p>
+
+  }
+
+  @if (successMessage) {
+
+  <div class="success-section">
+
+    <p class="success-message">
+      {{ successMessage }}
+    </p>
+
+    @if (jobId) {
+
+    <p>
+      <strong>Job ID:</strong>
+      {{ jobId }}
+    </p>
+
+    <p>
+      The import is being processed in the background.
+    </p>
+
+    }
+
+  </div>
+
+  }
+
+  <div class="buttons">
+
+    <button type="button"
+            (click)="importProducts()"
+            [disabled]="!selectedFile || loading">
+
+      {{ loading ? 'Uploading...' : 'Import Products' }}
+
+    </button>
+
+    <button type="button"
+            (click)="backToProducts()">
+
+      Back to Products
+
+    </button>
+
+  </div>
+
+  <div class="status-check-section">
+
+    <h3>Check Import Status</h3>
+
+    <label for="statusJobId">
+      Job ID
+    </label>
+
+    <input id="statusJobId"
+           type="text"
+           [value]="statusJobId"
+           (input)="statusJobId = $any($event.target).value"
+           placeholder="Enter Job ID" />
+
+    <button type="button"
+            (click)="checkImportStatus()"
+            [disabled]="statusLoading">
+      {{ statusLoading ? 'Checking...' : 'Check Status' }}
+    </button>
+
+    @if (statusErrorMessage) {
+
+    <p class="error-message">
+      {{ statusErrorMessage }}
+    </p>
+
+    }
+
+    @if (statusResult) {
+
+    <div class="status-result">
+      <p><strong>Job ID:</strong> {{ statusResult.jobId }}</p>
+      <p><strong>Status:</strong> {{ statusResult.status }}</p>
+      <p><strong>Total Rows:</strong> {{ statusResult.totalRows }}</p>
+      <p><strong>Inserted:</strong> {{ statusResult.inserted }}</p>
+      <p><strong>Errors:</strong> {{ statusResult.errors }}</p>
+      <p><strong>Created At:</strong> {{ statusResult.createdAt || '-' }}</p>
+      <p><strong>Completed At:</strong> {{ statusResult.completedAt || '-' }}</p>
+      <p><strong>Error Report:</strong> {{ statusResult.hasErrorReport ? 'Available' : 'Not available' }}</p>
+    </div>
+
+    }
+
+  </div>
+
+</div>

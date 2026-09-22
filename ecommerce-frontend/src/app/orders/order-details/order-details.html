@@ -1,0 +1,141 @@
+@if (loading()) {
+
+<div class="order-details-container">
+  <p>Loading order...</p>
+</div>
+
+} @else if (errorMessage()) {
+
+<div class="order-details-container">
+
+  <p>
+    {{ errorMessage() }}
+  </p>
+
+  <a routerLink="/orders">
+    Back to My Orders
+  </a>
+
+</div>
+
+} @else if (order()) {
+
+<div class="order-details-container">
+
+  <div class="order-header">
+
+    <div>
+
+      <h2>
+        Order #{{ order()!.id }}
+      </h2>
+
+      <p>
+        Order Date:
+        {{ order()!.orderDate | date }}
+      </p>
+
+    </div>
+
+    <div class="order-status">
+
+      <strong>
+        {{ order()!.status }}
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <div class="order-items">
+
+    <h3>
+      Order Items
+    </h3>
+
+    @for (
+    item of order()!.items;
+    track item.productId
+    ) {
+
+    <div class="order-item">
+
+      <div>
+
+        <h4>
+          {{ item.productName }}
+        </h4>
+
+        <p>
+          Price:
+          ₹{{ item.price }}
+        </p>
+
+        <p>
+          Quantity:
+          {{ item.quantity }}
+        </p>
+
+      </div>
+
+      <div>
+
+        <strong>
+          ₹{{ item.price * item.quantity }}
+        </strong>
+
+      </div>
+
+    </div>
+
+    }
+
+  </div>
+
+
+  <div class="order-summary">
+
+    <h3>
+      Total:
+      ₹{{ order()!.totalAmount }}
+    </h3>
+
+  </div>
+
+
+  @if (cancelMessage()) {
+
+  <p class="message">
+    {{ cancelMessage() }}
+  </p>
+
+  }
+
+
+  <div class="actions">
+
+    @if (order()!.status !== 'Cancelled') {
+
+    <button type="button"
+            class="cancel-button"
+            (click)="cancelOrder()">
+
+      Cancel Order
+
+    </button>
+
+    }
+
+    <a routerLink="/orders"
+       class="back-button">
+
+      Back to My Orders
+
+    </a>
+
+  </div>
+
+</div>
+
+}

@@ -23,6 +23,12 @@ public interface IProductRepository
     // Check whether a product exists
     Task<bool> ExistsAsync(int id);
 
+    // Check whether product is referenced by orders
+    Task<bool> IsReferencedByOrdersAsync(int productId);
+
+    // Check whether product exists in any cart
+    Task<bool> IsReferencedInCartsAsync(int productId);
+
     // Search, filter and sort products (returns paged items and total count)
     Task<(List<Product> Products, int TotalCount)> GetFilteredAsync(ProductQueryDto query);
 }

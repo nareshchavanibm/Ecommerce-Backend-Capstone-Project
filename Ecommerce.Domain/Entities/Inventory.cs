@@ -11,4 +11,6 @@ public class Inventory
     public int ReorderLevel { get; set; }
 
     public Product Product { get; set; } = null!;
+
+    public byte[]? RowVersion { get; set; }
 }

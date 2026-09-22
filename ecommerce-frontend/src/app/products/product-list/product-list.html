@@ -1,0 +1,166 @@
+<h2>Products</h2>
+
+<div class="filters">
+
+  <div>
+
+    <label for="search">
+      Search Product
+    </label>
+
+    <input id="search"
+           type="text"
+           [(ngModel)]="search"
+           placeholder="Search by product name or description..." />
+
+  </div>
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  <div class="filter-buttons">
+
+    <button type="button"
+            (click)="searchProducts()">
+
+      Search
+
+    </button>
+
+
+    <button type="button"
+            (click)="clearFilters()">
+
+      Clear
+
+    </button>
+
+  </div>
+
+</div>
+
+
+@if (loading()) {
+
+<p>
+  Loading products...
+</p>
+
+}
+
+@else if (errorMessage()) {
+
+<p>
+  {{ errorMessage() }}
+</p>
+
+}
+
+@else if (products().length === 0) {
+
+<p>
+  No products found.
+</p>
+
+}
+
+@else {
+
+<div class="product-grid">
+
+  @for (
+  product of products();
+  track product.id
+  ) {
+
+  <div class="product-card">
+
+    <h3>
+      {{ product.name }}
+    </h3>
+
+
+    <p>
+      {{ product.description }}
+    </p>
+
+
+    <p>
+
+      <strong>
+        Category:
+      </strong>
+
+      {{ getCategoryName(product.categoryId) }}
+
+    </p>
+
+
+    <p>
+
+      <strong>
+        ₹{{ product.price }}
+      </strong>
+
+    </p>
+
+
+    <a [routerLink]="[
+            '/products',
+            product.id
+          ]">
+
+      View Details
+
+    </a>
+
+  </div>
+
+  }
+
+</div>
+
+
+<div class="pagination">
+
+  <button type="button"
+          (click)="previousPage()"
+          [disabled]="currentPage() === 1">
+
+    Previous
+
+  </button>
+
+
+  <span>
+
+    Page
+    {{ currentPage() }}
+    of
+    {{ totalPages() }}
+
+  </span>
+
+
+  <button type="button"
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()">
+
+    Next
+
+  </button>
+
+</div>
+
+}

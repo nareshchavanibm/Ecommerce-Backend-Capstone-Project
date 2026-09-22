@@ -12,10 +12,5 @@ public class UpdateCategoryDto
     public string Name { get; set; } = string.Empty;
 
 
-    [Required(ErrorMessage = "Category description is required.")]
-    [StringLength(
-        500,
-        MinimumLength = 5,
-        ErrorMessage = "Category description must be between 5 and 500 characters.")]
-    public string Description { get; set; } = string.Empty;
+ 
 }

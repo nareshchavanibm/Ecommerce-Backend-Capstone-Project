@@ -36,6 +36,12 @@ builder.Services.AddSingleton<ECommerce.Application.Interfaces.IEmailSender, ECo
 // Notification service (SignalR)
 builder.Services.AddSingleton<ECommerce.Application.Interfaces.INotificationService, ECommerce.Infrastructure.Services.NotificationService>();
 
+// Import service
+builder.Services.AddScoped<ECommerce.Infrastructure.Services.ImportProductsService>();
+
+// Configure default import batch size (can be overridden in appsettings.json)
+builder.Configuration["Import:BatchSize"] ??= "1000";
+
 builder.Services.AddExceptionHandler<
     ECommerce.Api.Exceptions.GlobalExceptionHandler>();
 
@@ -176,6 +182,17 @@ builder.Services.AddSwaggerGen(options =>
 //Console.WriteLine(
 //    BCrypt.Net.BCrypt.HashPassword("Admin@12345"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularClient", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 app.UseExceptionHandler();
 // Configure Swagger
@@ -183,19 +200,23 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+   
 }
 
 // HTTPS
 app.UseHttpsRedirection();
 
+app.UseCors("AngularClient");
+
 // Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+
 
 // Map controllers
 app.MapControllers();
 
 // Map SignalR hubs
 app.MapHub<ECommerce.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
-
 app.Run();

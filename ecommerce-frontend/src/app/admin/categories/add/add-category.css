@@ -1,0 +1,39 @@
+.form-container {
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid black;
+}
+
+button {
+  padding: 8px 14px;
+  margin-right: 8px;
+  cursor: pointer;
+  background: white;
+  border: 1px solid black;
+}
+
+  button:hover {
+    background: black;
+    color: white;
+  }
+
+.error-message {
+  font-weight: bold;
+}

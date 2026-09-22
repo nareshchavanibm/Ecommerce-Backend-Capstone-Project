@@ -1,0 +1,93 @@
+<div class="categories-container">
+
+  <div class="header">
+
+    <div>
+      <h2>Category Management</h2>
+      <p>Manage product categories.</p>
+    </div>
+
+    <button type="button"
+            (click)="addCategory()">
+      Add Category
+    </button>
+
+  </div>
+
+
+  @if (loading()) {
+
+  <p>Loading categories...</p>
+
+  }
+
+
+  @if (errorMessage()) {
+
+  <p class="error-message">
+    {{ errorMessage() }}
+  </p>
+
+  }
+
+
+  @if (!loading() && categories().length === 0) {
+
+  <p>No categories found.</p>
+
+  }
+
+
+  @if (!loading() && categories().length > 0) {
+
+  <table>
+
+    <thead>
+
+      <tr>
+        <th>ID</th>
+        <th>Category Name</th>
+        <th>Actions</th>
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      @for (category of pagedCategories(); track category.id) {
+
+      <tr>
+
+        <td>
+          {{ category.id }}
+        </td>
+
+        <td>
+          {{ category.name }}
+        </td>
+
+        <td>
+
+          <button type="button"
+                  (click)="editCategory(category.id)">
+            Edit
+          </button>
+
+          <button type="button"
+                  (click)="deleteCategory(category)">
+            Delete
+          </button>
+
+        </td>
+
+      </tr>
+
+      }
+
+    </tbody>
+
+  </table>
+
+  }
+
+</div>

@@ -1,0 +1,71 @@
+.admin-products-container {
+  width: 95%;
+  margin: 30px auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+  .page-header a {
+    padding: 10px 16px;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    background: #000000;
+    color: #ffffff;
+    text-decoration: none;
+  }
+
+    .page-header a:hover {
+      background: #ffffff;
+      color: #000000;
+    }
+
+.success-message {
+  padding: 10px;
+  border: 1px solid #000000;
+  margin-bottom: 15px;
+}
+
+.error-message {
+  padding: 10px;
+  border: 1px solid #000000;
+  margin-bottom: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #000000;
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background: #000000;
+  color: #ffffff;
+}
+
+td a {
+  margin-right: 10px;
+  color: #000000;
+}
+
+td button {
+  padding: 6px 10px;
+  border: 1px solid #000000;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+  td button:hover {
+    background: #000000;
+    color: #ffffff;
+  }

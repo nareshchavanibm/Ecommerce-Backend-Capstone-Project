@@ -1,0 +1,149 @@
+<div class="edit-product-container">
+
+  <h2>Edit Product</h2>
+
+  @if (loadingProduct) {
+
+  <p>Loading product...</p>
+
+  } @else {
+
+  <form (ngSubmit)="updateProduct()"
+        #productForm="ngForm">
+
+    <div class="form-group">
+
+      <label for="name">
+        Product Name
+      </label>
+
+      <input id="name"
+             type="text"
+             name="name"
+             [(ngModel)]="product.name"
+             required
+             minlength="2"
+             maxlength="100" />
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label for="description">
+        Description
+      </label>
+
+      <textarea id="description"
+                name="description"
+                [(ngModel)]="product.description"
+                required
+                minlength="5"
+                maxlength="1000"></textarea>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label for="price">
+        Price
+      </label>
+
+      <input id="price"
+             type="number"
+             name="price"
+             [(ngModel)]="product.price"
+             min="0.01"
+             required />
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label for="category">
+        Category
+      </label>
+
+      <select id="category"
+              name="categoryId"
+              [(ngModel)]="product.categoryId"
+              required>
+
+        <option [ngValue]="0">
+          Select Category
+        </option>
+
+        @for (category of categories; track category.id) {
+
+        <option [ngValue]="category.id">
+          {{ category.name }}
+        </option>
+
+        }
+
+      </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label for="stock">
+        Current Stock
+      </label>
+
+      <input id="stock"
+             type="number"
+             [value]="stockQuantity"
+             disabled />
+
+      <small>
+        Manage stock from Inventory Management.
+      </small>
+
+    </div>
+
+
+    @if (errorMessage) {
+
+    <p class="error-message">
+      {{ errorMessage }}
+    </p>
+
+    }
+
+
+    @if (successMessage) {
+
+    <p class="success-message">
+      {{ successMessage }}
+    </p>
+
+    }
+
+
+    <div class="buttons">
+
+      <button type="submit"
+              [disabled]="productForm.invalid || loading">
+
+        {{ loading ? 'Updating...' : 'Update Product' }}
+
+      </button>
+
+      <button type="button"
+              (click)="cancel()">
+
+        Cancel
+
+      </button>
+
+    </div>
+
+  </form>
+
+  }
+
+</div>

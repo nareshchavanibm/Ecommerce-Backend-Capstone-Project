@@ -1,0 +1,74 @@
+<h2>My Orders</h2>
+
+@if (loading()) {
+
+<p>Loading orders...</p>
+
+} @else if (errorMessage()) {
+
+<p>{{ errorMessage() }}</p>
+
+} @else if (orders().length === 0) {
+
+<div class="empty-orders">
+
+  <h3>No orders found</h3>
+
+  <p>
+    You haven't placed any orders yet.
+  </p>
+
+  <a routerLink="/products">
+    Start Shopping
+  </a>
+
+</div>
+
+} @else {
+
+<div class="orders-container">
+
+  @for (order of orders(); track order.id) {
+
+  <div class="order-card">
+
+    <div class="order-header">
+
+      <h3>
+        Order #{{ order.id }}
+      </h3>
+
+      <span>
+        {{ order.status }}
+      </span>
+
+    </div>
+
+    <p>
+      Order Date:
+      {{ order.orderDate | date }}
+    </p>
+
+    <p>
+      Total:
+      <strong>₹{{ order.totalAmount }}</strong>
+    </p>
+
+    <p>
+      Items:
+      {{ order.items.length }}
+    </p>
+
+    <a [routerLink]="['/orders', order.id]">
+
+      View Order
+
+    </a>
+
+  </div>
+
+  }
+
+</div>
+
+}

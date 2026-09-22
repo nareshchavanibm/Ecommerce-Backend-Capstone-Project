@@ -53,4 +53,16 @@ public class NotificationService : INotificationService
             _logger.LogError(ex, "Error sending ProductDeleted notification.");
         }
     }
+
+    public async Task NotifyImportProgress(string jobId, int percent, string message)
+    {
+        try
+        {
+            await _hubContext.Clients.All.SendAsync("ImportProgress", new { JobId = jobId, Percent = percent, Message = message });
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Error sending ImportProgress notification.");
+        }
+    }
 }

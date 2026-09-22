@@ -1,0 +1,47 @@
+.confirmation-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+}
+
+.success-message {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+  .success-message h2 {
+    margin-bottom: 10px;
+  }
+
+.order-details,
+.order-items {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+  .order-item:last-child {
+    border-bottom: none;
+  }
+
+.actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.shopping-button,
+.home-button {
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+}
