@@ -1,0 +1,216 @@
+
+services:
+
+  # =========================
+  # SQL SERVER
+  # =========================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ecommerce-sqlserver
+
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      MSSQL_PID: "Developer"
+
+    ports:
+      - "1433:1433"
+
+    volumes:
+      - ecommerce-sqlserver-data:/var/opt/mssql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" -b"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # REDIS CACHE
+  # =========================
+  redis:
+    image: redis:7
+    container_name: ecommerce-redis
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # USER SERVICE
+  # =========================
+  userservice:
+    image: localhost/ecommerce-userservice:latest
+    container_name: ecommerce-userservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceUserDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5094:8080"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # PRODUCT SERVICE
+  # =========================
+  productservice:
+    build:
+      context: .
+      dockerfile: Services/ProductService/Dockerfile
+
+    image: localhost/ecommerce-productservice:latest
+    container_name: ecommerce-productservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceProductDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      ConnectionStrings__Redis: "redis:6379"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5095:8080"
+
+    depends_on:
+      - sqlserver
+      - redis
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # ORDER SERVICE
+  # =========================
+  orderservice:
+    build:
+      context: .
+      dockerfile: Services/OrderService/Dockerfile
+
+    image: localhost/ecommerce-orderservice:latest
+    container_name: ecommerce-orderservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceOrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5096:8080"
+
+    depends_on:
+      - sqlserver
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # PAYMENT SERVICE
+  # =========================
+  paymentservice:
+    image: localhost/ecommerce-paymentservice:latest
+    container_name: ecommerce-paymentservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommercePaymentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5097:8080"
+
+    depends_on:
+      - sqlserver
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # API GATEWAY
+  # =========================
+  apigateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+
+    image: localhost/ecommerce-apigateway:latest
+    container_name: ecommerce-apigateway
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080;https://+:8443"
+
+      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/ecommerce-gateway.pfx"
+      ASPNETCORE_Kestrel__Certificates__Default__Password: "EcommerceGatewayDevPassword123"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5100:8080"
+      - "5101:8443"
+
+    volumes:
+      - type: bind
+        source: "C:/Users/NareshChavan/.aspnet/https"
+        target: "/https"
+        read_only: true
+
+    depends_on:
+      - userservice
+      - productservice
+      - orderservice
+      - paymentservice
+
+    networks:
+      - ecommerce-network
+
+# =========================
+# VOLUMES
+# =========================
+volumes:
+  ecommerce-sqlserver-data:
+    external: true
+
+# =========================
+# NETWORK
+# =========================
+networks:
+  ecommerce-network:
+    external: true
+

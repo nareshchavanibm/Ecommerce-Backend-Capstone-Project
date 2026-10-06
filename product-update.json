@@ -1,0 +1,7 @@
+﻿{
+  "name": "Gaming Laptop Redis Test",
+  "description": "Testing Redis cache invalidation",
+  "price": 85000,
+  "imageUrl": null,
+  "categoryId": 2
+}

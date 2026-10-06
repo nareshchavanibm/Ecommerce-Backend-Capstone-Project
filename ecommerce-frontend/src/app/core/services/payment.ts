@@ -14,7 +14,7 @@ import {
 })
 export class PaymentService {
 
-  private apiUrl = `${environment.apiUrl}/api/payment`;
+  private apiUrl = `${environment.apiUrl}/api/payments`;
 
   constructor(
     private http: HttpClient

@@ -1,0 +1,67 @@
+name: ProductService CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Services/ProductService/**'
+      - 'k8s/product-service.yaml'
+      - '.github/workflows/product-service-cicd.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/product-service
+      K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE != '' && secrets.K8S_NAMESPACE || 'default' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Services/ProductService/ProductService.Api/ProductService.Api.csproj
+
+      - name: Build
+        run: dotnet build Services/ProductService/ProductService.Api/ProductService.Api.csproj --configuration Release --no-restore
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Services/ProductService/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/product-service.yaml -n ${{ env.K8S_NAMESPACE }}
+          kubectl set image deployment/product-service product-service=${{ env.IMAGE_NAME }}:${{ github.sha }} -n ${{ env.K8S_NAMESPACE }}
+          kubectl rollout status deployment/product-service -n ${{ env.K8S_NAMESPACE }}
