@@ -1,0 +1,55 @@
+<div class="page container">
+
+  <header class="intro">
+    <p class="intro__eyebrow">Contact us</p>
+    <h1 class="intro__title">We are here to help</h1>
+    <p class="intro__text">Reach out with questions about products, your account or an order.</p>
+  </header>
+
+  <div class="layout">
+
+    <section class="card" aria-labelledby="reach-title">
+      <h2 id="reach-title" class="card__title">Get in touch</h2>
+
+      <dl class="details">
+        @if (info.email) {
+          <div class="details__row">
+            <dt>Email</dt>
+            <dd><a [href]="'mailto:' + info.email">{{ info.email }}</a></dd>
+          </div>
+        }
+        @if (info.phone) {
+          <div class="details__row">
+            <dt>Phone</dt>
+            <dd><a [href]="'tel:' + info.phone">{{ info.phone }}</a></dd>
+          </div>
+        }
+        @if (info.address) {
+          <div class="details__row">
+            <dt>Address</dt>
+            <dd class="details__address">{{ info.address }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="help-title">
+      <h2 id="help-title" class="card__title">Looking for something else?</h2>
+
+      <ul class="links">
+        @if (authService.isLoggedIn()) {
+          @if (authService.getRole() !== 'Admin') {
+            <li><a routerLink="/orders">Check the status of an order</a></li>
+          }
+          <li><a routerLink="/profile">View your account</a></li>
+        } @else {
+          <li><a routerLink="/login">Log in to see your orders</a></li>
+          <li><a routerLink="/forgot-password">Reset your password</a></li>
+        }
+        <li><a routerLink="/products">Browse all products</a></li>
+      </ul>
+    </section>
+
+  </div>
+
+</div>

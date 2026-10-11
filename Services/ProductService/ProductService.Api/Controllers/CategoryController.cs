@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductService.Application.DTOs.Categories;
 using ProductService.Application.Interfaces.Services;
@@ -37,6 +38,7 @@ namespace ProductService.Api.Controllers
             return Ok(category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(
             [FromBody] CategoryCreateDto request)
@@ -49,6 +51,7 @@ namespace ProductService.Api.Controllers
                 category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(
             int id,
@@ -65,6 +68,7 @@ namespace ProductService.Api.Controllers
             return Ok(category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

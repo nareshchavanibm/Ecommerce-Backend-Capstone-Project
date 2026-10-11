@@ -1,0 +1,39 @@
+<span class="shape shape--quarter" aria-hidden="true"></span>
+<span class="shape shape--sphere" aria-hidden="true"></span>
+<span class="shape shape--bite" aria-hidden="true"></span>
+
+<div class="content">
+  <p class="headline">{{ headline() }}</p>
+
+  @if (subheadline()) {
+    <p class="subheadline">{{ subheadline() }}</p>
+  }
+
+  @if (message()) {
+    <p class="message">{{ message() }}</p>
+  }
+
+  <ul class="trust">
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+        <path d="M9 12l2.25 2.25L15.5 10" fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+      Secure payment
+    </li>
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4" fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+      Order tracking
+    </li>
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path d="M2 6h11v10H2zM13 9h4l3 3v4h-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+        <circle cx="7" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+      Browse without an account
+    </li>
+  </ul>
+</div>

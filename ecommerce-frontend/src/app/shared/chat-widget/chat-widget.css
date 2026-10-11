@@ -1,0 +1,412 @@
+:host {
+  /* Indigo, so the chat stands out from the app's green. */
+  --color-primary: #3730a3;
+  --color-primary-hover: #312e81;
+  --color-primary-active: #272560;
+  --color-accent: #eef2ff;
+  --color-accent-strong: #c7d2fe;
+  --focus-ring: 0 0 0 3px #ffffff, 0 0 0 5px #3730a3;
+
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 900;
+  font-family: var(--font-sans);
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+.launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.launcher:hover {
+  background: var(--color-primary-hover);
+}
+
+.launcher:active {
+  background: var(--color-primary-active);
+}
+
+.launcher:focus-visible,
+.icon:focus-visible,
+.link:focus-visible,
+.chip:focus-visible,
+.send:focus-visible,
+.log:focus-visible,
+.order:focus-visible,
+.product:focus-visible,
+.composer__input:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Mobile: the panel is a full-width sheet above the launcher. */
+.panel {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  z-index: 901;
+}
+
+.panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.panel__sub {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  opacity: 0.9;
+}
+
+.panel__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.panel__head .link {
+  color: var(--color-on-primary);
+}
+
+.panel__head .link:focus-visible,
+.panel__head .icon:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 4px #ffffff;
+}
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.icon:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+.link {
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  color: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: var(--color-bg-subtle);
+}
+
+.intro__text {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.chip {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--color-accent);
+}
+
+.msg {
+  align-self: flex-start;
+  max-width: 90%;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.msg--user {
+  align-self: flex-end;
+  background: var(--color-accent);
+  border-color: var(--color-accent-strong);
+}
+
+.msg--error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.msg__text {
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.order,
+.product {
+  display: flex;
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  gap: var(--space-3);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.order {
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.order:hover,
+.product:hover {
+  border-color: var(--color-primary);
+}
+
+.order__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.order__status {
+  padding: 0 var(--space-2);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.order__meta,
+.order__items {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.products {
+  display: grid;
+  gap: 0;
+}
+
+.product {
+  align-items: center;
+  margin-top: var(--space-2);
+}
+
+.product__img {
+  flex: none;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.product__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.product__name {
+  font-weight: var(--weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.product__price {
+  color: var(--color-text-muted);
+}
+
+.handoff {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+.rate {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.rate__thanks {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.typing {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.composer {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.composer__input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  resize: none;
+}
+
+.composer__input--invalid {
+  border-color: var(--color-danger);
+}
+
+.composer__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.composer__error {
+  flex: 1;
+  min-height: 1.2em;
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+.composer__count {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.composer__count--over {
+  color: var(--color-danger);
+  font-weight: var(--weight-semibold);
+}
+
+.send {
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 0;
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.send:disabled {
+  background: var(--color-border-strong);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+@media (min-width: 672px) {
+  :host {
+    right: var(--space-6);
+    bottom: var(--space-6);
+  }
+
+  .panel {
+    inset: auto var(--space-6) calc(var(--space-6) + var(--control-height) + var(--space-3)) auto;
+    width: 380px;
+    height: min(600px, calc(100vh - 140px));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+}
+
+@media (min-width: 1312px) {
+  .panel {
+    width: 400px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher {
+    transition: none;
+  }
+}

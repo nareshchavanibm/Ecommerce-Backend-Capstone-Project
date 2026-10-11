@@ -24,6 +24,9 @@ namespace ProductService.Application.Interfaces.Services
         Task<List<ProductResponseDto>> BulkUpdateAsync(
             List<BulkUpdateProductRequest> requests);
 
+        Task<ProductImportResult> ImportAsync(
+            List<ProductImportRow> rows);
+
         Task<bool> DeleteAsync(int id);
 
         Task<PagedProductResponseDto> GetPagedAsync(

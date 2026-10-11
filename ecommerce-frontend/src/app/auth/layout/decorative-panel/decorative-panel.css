@@ -1,0 +1,86 @@
+:host {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: var(--space-4);
+  height: 100%;
+  padding: var(--space-12) var(--space-10);
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+}
+
+.subheadline {
+  margin: 0;
+  color: var(--color-accent-strong);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+}
+
+.message {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--text-lg);
+}
+
+.trust {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trust__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+}
+
+/* Soft decorative shapes */
+.shape {
+  position: absolute;
+  background: rgb(255 255 255 / 7%);
+}
+
+.shape--quarter {
+  top: -80px;
+  right: -80px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+}
+
+.shape--sphere {
+  bottom: 60px;
+  left: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+}
+
+.shape--bite {
+  right: 40px;
+  bottom: -70px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50% 0 50% 50%;
+}

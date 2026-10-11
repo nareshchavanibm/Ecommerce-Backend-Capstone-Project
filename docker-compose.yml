@@ -89,6 +89,8 @@ services:
 
       ConnectionStrings__Redis: "redis:6379"
 
+      Internal__ApiKey: "${INTERNAL_API_KEY}"
+
       Jwt__Key: "${JWT_KEY}"
       Jwt__Issuer: "${JWT_ISSUER}"
       Jwt__Audience: "${JWT_AUDIENCE}"
@@ -120,6 +122,9 @@ services:
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceOrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
+      Services__ProductServiceUrl: "http://productservice:8080"
+      Internal__ApiKey: "${INTERNAL_API_KEY}"
+
       Jwt__Key: "${JWT_KEY}"
       Jwt__Issuer: "${JWT_ISSUER}"
       Jwt__Audience: "${JWT_AUDIENCE}"
@@ -129,6 +134,7 @@ services:
 
     depends_on:
       - sqlserver
+      - productservice
 
     networks:
       - ecommerce-network
@@ -137,6 +143,10 @@ services:
   # PAYMENT SERVICE
   # =========================
   paymentservice:
+    build:
+      context: .
+      dockerfile: Services/PaymentService/Dockerfile
+
     image: localhost/ecommerce-paymentservice:latest
     container_name: ecommerce-paymentservice
 
@@ -145,6 +155,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommercePaymentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      Services__OrderServiceUrl: "http://orderservice:8080"
+      Internal__ApiKey: "${INTERNAL_API_KEY}"
 
       Jwt__Key: "${JWT_KEY}"
       Jwt__Issuer: "${JWT_ISSUER}"
@@ -160,8 +173,47 @@ services:
       - ecommerce-network
 
   # =========================
+  # CHAT SERVICE (AI assistant)
+  # =========================
+  chatservice:
+    build:
+      context: .
+      dockerfile: Services/ChatService/Dockerfile
+
+    image: localhost/ecommerce-chatservice:latest
+    container_name: ecommerce-chatservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      Services__ProductServiceUrl: "http://productservice:8080"
+      Services__OrderServiceUrl: "http://orderservice:8080"
+
+      # Leave FOUNDRY_ENDPOINT empty to run in retrieval-only mode.
+      Foundry__Endpoint: "${FOUNDRY_ENDPOINT:-}"
+      Foundry__ChatDeployment: "${FOUNDRY_CHAT_DEPLOYMENT:-gpt-4o-mini}"
+      Foundry__EmbeddingDeployment: "${FOUNDRY_EMBEDDING_DEPLOYMENT:-}"
+      Foundry__ApiKey: "${FOUNDRY_API_KEY:-}"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5098:8080"
+
+    depends_on:
+      - productservice
+      - orderservice
+
+    networks:
+      - ecommerce-network
+
+  # =========================
   # API GATEWAY
   # =========================
+
   apigateway:
     build:
       context: .
@@ -196,6 +248,7 @@ services:
       - productservice
       - orderservice
       - paymentservice
+      - chatservice
 
     networks:
       - ecommerce-network

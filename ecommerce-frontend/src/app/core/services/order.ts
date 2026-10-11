@@ -32,11 +32,11 @@ export class OrderService {
   }
 
   getOrder(
-    orderId: number
+    orderNumber: string
   ): Observable<Order> {
 
     return this.http.get<Order>(
-      `${this.apiUrl}/${orderId}`
+      `${this.apiUrl}/${orderNumber}`
     );
   }
 
@@ -48,11 +48,11 @@ export class OrderService {
   }
 
   cancelOrder(
-    orderId: number
+    orderNumber: string
   ): Observable<Order> {
 
     return this.http.put<Order>(
-      `${this.apiUrl}/${orderId}/cancel`,
+      `${this.apiUrl}/${orderNumber}/cancel`,
       {}
     );
   }
@@ -65,12 +65,12 @@ export class OrderService {
   }
 
   updateOrderStatus(
-    orderId: number,
+    orderNumber: string,
     request: UpdateOrderStatus
   ): Observable<Order> {
 
     return this.http.put<Order>(
-      `${this.apiUrl}/${orderId}/status`,
+      `${this.apiUrl}/${orderNumber}/status`,
       request
     );
   }

@@ -2,129 +2,117 @@
 
   <h2>Bulk Product Import</h2>
 
-  <p>
-    Upload a CSV or XLSX file to import multiple products.
-  </p>
+  <p>Upload a CSV or XLSX file to add many products at once.</p>
 
-  <div class="upload-section">
+  <section class="format" aria-labelledby="format-title">
 
-    <label for="productFile">
-      Select File
-    </label>
+    <h3 id="format-title" class="format__title">File format</h3>
 
-    <input id="productFile"
-           type="file"
-           accept=".csv,.xlsx"
-           (change)="onFileSelected($event)" />
-
-  </div>
-
-  @if (selectedFile) {
-
-  <div class="selected-file">
-
-    <strong>Selected File:</strong>
-
-    {{ selectedFile.name }}
-
-  </div>
-
-  }
-
-  @if (errorMessage) {
-
-  <p class="error-message">
-    {{ errorMessage }}
-  </p>
-
-  }
-
-  @if (successMessage) {
-
-  <div class="success-section">
-
-    <p class="success-message">
-      {{ successMessage }}
+    <p class="format__text">
+      Put these headers in the first row. Rows with errors are skipped and
+      reported; the other rows are still imported.
     </p>
 
-    @if (jobId) {
+    <dl class="columns">
+      <div class="columns__row">
+        <dt>Name</dt>
+        <dd>Required, up to 100 characters</dd>
+      </div>
+      <div class="columns__row">
+        <dt>Price</dt>
+        <dd>Required, greater than 0</dd>
+      </div>
+      <div class="columns__row">
+        <dt>CategoryName <span class="columns__or">or</span> CategoryId</dt>
+        <dd>One is required. A new category name is created automatically.</dd>
+      </div>
+      <div class="columns__row">
+        <dt>Description</dt>
+        <dd>Optional, up to 1000 characters</dd>
+      </div>
+      <div class="columns__row">
+        <dt>ImageUrl</dt>
+        <dd>Optional, up to 500 characters</dd>
+      </div>
+      <div class="columns__row">
+        <dt>StockQuantity</dt>
+        <dd>Optional whole number. Blank or missing columns give each product a stock of 10.</dd>
+      </div>
+      <div class="columns__row">
+        <dt>ReorderLevel</dt>
+        <dd>Optional whole number. Blank or missing columns use 2. A product is low stock at or below this number.</dd>
+      </div>
+    </dl>
 
-    <p>
-      <strong>Job ID:</strong>
-      {{ jobId }}
-    </p>
+    <button app-button type="button" variant="outline" (click)="downloadTemplate()">
+      Download CSV template
+    </button>
 
-    <p>
-      The import is being processed in the background.
-    </p>
+  </section>
 
+  <div class="field">
+
+    <label class="field__label" for="productFile">Select file</label>
+
+    <input
+      #fileInput
+      id="productFile"
+      class="field__input"
+      type="file"
+      accept=".csv,.xlsx"
+      [attr.aria-invalid]="fileError() ? 'true' : null"
+      [attr.aria-describedby]="fileError() ? 'productFile-error' : 'productFile-hint'"
+      (change)="onFileSelected($event)" />
+
+    @if (fileError()) {
+      <p id="productFile-error" class="field__error" role="alert">{{ fileError() }}</p>
+    } @else if (file(); as selected) {
+      <p id="productFile-hint" class="field__hint">
+        {{ selected.name }} ({{ formatSize(selected.size) }})
+      </p>
+    } @else {
+      <p id="productFile-hint" class="field__hint">CSV or XLSX, up to 10 MB and 10,000 rows.</p>
     }
 
   </div>
 
+  @if (errorMessage()) {
+    <app-alert variant="error">{{ errorMessage() }}</app-alert>
   }
 
-  <div class="buttons">
+  @if (result(); as summary) {
 
-    <button type="button"
-            (click)="importProducts()"
-            [disabled]="!selectedFile || loading">
+    <app-alert [variant]="summary.inserted ? 'success' : 'error'">
+      {{ summary.message }}
+    </app-alert>
 
-      {{ loading ? 'Uploading...' : 'Import Products' }}
-
-    </button>
-
-    <button type="button"
-            (click)="backToProducts()">
-
-      Back to Products
-
-    </button>
-
-  </div>
-
-  <div class="status-check-section">
-
-    <h3>Check Import Status</h3>
-
-    <label for="statusJobId">
-      Job ID
-    </label>
-
-    <input id="statusJobId"
-           type="text"
-           [value]="statusJobId"
-           (input)="statusJobId = $any($event.target).value"
-           placeholder="Enter Job ID" />
-
-    <button type="button"
-            (click)="checkImportStatus()"
-            [disabled]="statusLoading">
-      {{ statusLoading ? 'Checking...' : 'Check Status' }}
-    </button>
-
-    @if (statusErrorMessage) {
-
-    <p class="error-message">
-      {{ statusErrorMessage }}
-    </p>
-
+    @if (summary.errorDetails?.length) {
+      <details class="issues" open>
+        <summary>Rows that were skipped ({{ summary.errors }})</summary>
+        <ul class="issues__list">
+          @for (detail of summary.errorDetails; track $index) {
+            <li>{{ detail }}</li>
+          }
+        </ul>
+      </details>
     }
 
-    @if (statusResult) {
+  }
 
-    <div class="status-result">
-      <p><strong>Job ID:</strong> {{ statusResult.jobId }}</p>
-      <p><strong>Status:</strong> {{ statusResult.status }}</p>
-      <p><strong>Total Rows:</strong> {{ statusResult.totalRows }}</p>
-      <p><strong>Inserted:</strong> {{ statusResult.inserted }}</p>
-      <p><strong>Errors:</strong> {{ statusResult.errors }}</p>
-      <p><strong>Created At:</strong> {{ statusResult.createdAt || '-' }}</p>
-      <p><strong>Completed At:</strong> {{ statusResult.completedAt || '-' }}</p>
-      <p><strong>Error Report:</strong> {{ statusResult.hasErrorReport ? 'Available' : 'Not available' }}</p>
-    </div>
+  <div class="actions">
 
-    }
+    <button
+      app-button
+      type="button"
+      [loading]="loading()"
+      [disabled]="!file()"
+      (click)="importProducts()">
+      {{ loading() ? 'Importing...' : 'Import products' }}
+    </button>
+
+    <button app-button type="button" variant="ghost" (click)="backToProducts()">
+      Back to products
+    </button>
 
   </div>
 

@@ -1,74 +1,51 @@
-<h2>My Orders</h2>
+<div class="page container">
 
-@if (loading()) {
+  <h1 class="page__title">My orders</h1>
 
-<p>Loading orders...</p>
-
-} @else if (errorMessage()) {
-
-<p>{{ errorMessage() }}</p>
-
-} @else if (orders().length === 0) {
-
-<div class="empty-orders">
-
-  <h3>No orders found</h3>
-
-  <p>
-    You haven't placed any orders yet.
-  </p>
-
-  <a routerLink="/products">
-    Start Shopping
-  </a>
-
-</div>
-
-} @else {
-
-<div class="orders-container">
-
-  @for (order of orders(); track order.id) {
-
-  <div class="order-card">
-
-    <div class="order-header">
-
-      <h3>
-        Order #{{ order.id }}
-      </h3>
-
-      <span>
-        {{ order.status }}
-      </span>
-
+  @if (loading()) {
+    <ul class="list" aria-busy="true" aria-label="Loading orders">
+      @for (n of [1, 2, 3]; track n) {
+        <li class="card card--skeleton"></li>
+      }
+    </ul>
+  } @else if (errorMessage()) {
+    <div class="state" role="alert">
+      <p class="state__error">{{ errorMessage() }}</p>
+      <button type="button" (click)="loadOrders()">Try again</button>
     </div>
+  } @else if (orders().length === 0) {
+    <div class="state state--empty">
+      <h2 class="state__title">No orders yet</h2>
+      <p class="state__text">When you place an order it will show up here.</p>
+      <a class="btn btn--primary" routerLink="/products">Start shopping</a>
+    </div>
+  } @else {
+    <ul class="list">
+      @for (order of orders(); track order.orderNumber) {
+        <li class="card">
+          <div class="card__head">
+            <h2 class="card__title">Order {{ order.orderNumber }}</h2>
+            <span class="status" [attr.data-status]="order.status">{{ order.status }}</span>
+          </div>
 
-    <p>
-      Order Date:
-      {{ order.orderDate | date }}
-    </p>
+          <dl class="card__meta">
+            <div>
+              <dt>Placed on</dt>
+              <dd>{{ order.orderDate | date: 'mediumDate' }}</dd>
+            </div>
+            <div>
+              <dt>Items</dt>
+              <dd>{{ order.items.length }}</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd class="card__total">{{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}</dd>
+            </div>
+          </dl>
 
-    <p>
-      Total:
-      <strong>₹{{ order.totalAmount }}</strong>
-    </p>
-
-    <p>
-      Items:
-      {{ order.items.length }}
-    </p>
-
-    <a [routerLink]="['/orders', order.id]">
-
-      View Order
-
-    </a>
-
-  </div>
-
+          <a class="btn btn--outline" [routerLink]="['/orders', order.orderNumber]">View order</a>
+        </li>
+      }
+    </ul>
   }
-
 </div>
-
-}

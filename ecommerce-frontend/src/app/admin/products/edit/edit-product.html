@@ -90,6 +90,38 @@
 
     <div class="form-group">
 
+      <label for="imageUrl">Image URL <span class="optional">(optional)</span></label>
+
+      <input id="imageUrl"
+             type="url"
+             name="imageUrl"
+             [(ngModel)]="product.imageUrl"
+             (ngModelChange)="imageFailed = false"
+             maxlength="500"
+             pattern="https?://.+"
+             placeholder="https://example.com/photo.jpg"
+             #imageUrl="ngModel" />
+
+      @if (imageUrl.touched && imageUrl.invalid) {
+      <small class="field-error">Enter a full web address starting with http:// or https://</small>
+      }
+
+      @if (product.imageUrl && imageUrl.valid && !imageFailed) {
+      <img class="image-preview"
+           [src]="product.imageUrl"
+           alt="Product image preview"
+           (error)="imageFailed = true" />
+      }
+
+      @if (imageFailed) {
+      <small class="field-error">This image could not be loaded. Check the address.</small>
+      }
+
+    </div>
+
+
+    <div class="form-group">
+
       <label for="stock">
         Current Stock
       </label>

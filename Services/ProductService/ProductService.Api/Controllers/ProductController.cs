@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductService.Api.Import;
 using ProductService.Application.DTOs;
 using ProductService.Application.DTOs.Products;
 using ProductService.Application.Interfaces.Services;
@@ -214,6 +215,68 @@ namespace ProductService.Api.Controllers
             return Ok(products);
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost("import")]
+        [RequestSizeLimit(10 * 1024 * 1024)]
+        public async Task<IActionResult> Import(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "No file uploaded."
+                });
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (extension != ".csv" && extension != ".xlsx")
+            {
+                return BadRequest(new
+                {
+                    message = "Unsupported file type. Use .csv or .xlsx."
+                });
+            }
+
+            List<ProductImportRow> rows;
+
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                rows = ProductImportFileReader.Read(stream, extension);
+            }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or InvalidOperationException
+                                       or ExcelDataReader.Exceptions.ExcelReaderException)
+            {
+                return BadRequest(new
+                {
+                    message = ex is InvalidDataException
+                        ? ex.Message
+                        : "The file could not be read. Check that it is a valid CSV or XLSX file."
+                });
+            }
+
+            if (rows.Count == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "The file has no product rows."
+                });
+            }
+
+            var result = await _productService.ImportAsync(rows);
+
+            return Ok(new
+            {
+                message = $"Imported {result.Inserted} of {result.TotalRows} rows."
+                    + (result.Errors > 0 ? $" {result.Errors} rows had errors." : string.Empty),
+                totalRows = result.TotalRows,
+                inserted = result.Inserted,
+                errors = result.Errors,
+                errorDetails = result.ErrorDetails.Take(50)
+            });
+        }
+
         [HttpGet("paged")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] int pageNumber = 1,
@@ -314,6 +377,28 @@ namespace ProductService.Api.Controllers
                 sortOrder);
 
             return Ok(result);
+        }
+
+        [HttpGet("search")]
+        public Task<IActionResult> Search(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? category = null,
+            [FromQuery] decimal? minPrice = null,
+            [FromQuery] decimal? maxPrice = null,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortOrder = null)
+        {
+            return GetPaged(
+                pageNumber,
+                pageSize,
+                search,
+                category,
+                minPrice,
+                maxPrice,
+                sortBy,
+                sortOrder);
         }
     }
 }

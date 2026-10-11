@@ -1,0 +1,146 @@
+<button #launcher
+        type="button"
+        class="launcher"
+        [attr.aria-expanded]="open()"
+        aria-controls="chat-panel"
+        (click)="toggle()">
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+    <path d="M4 5h16v11H9l-5 4V5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+  </svg>
+  <span class="launcher__label">{{ open() ? 'Close chat' : 'Chat with us' }}</span>
+</button>
+
+@if (open()) {
+  <section id="chat-panel"
+           class="panel"
+           role="dialog"
+           aria-labelledby="chat-title"
+           (keydown.escape)="close()">
+
+    <header class="panel__head">
+      <div>
+        <h2 id="chat-title" class="panel__title">{{ chat.config().title }}</h2>
+        <p class="panel__sub">AI assistant. It can make mistakes.</p>
+      </div>
+
+      <div class="panel__tools">
+        @if (chat.messages().length > 0) {
+          <button type="button" class="link" (click)="newChat()">New chat</button>
+        }
+        <button type="button" class="icon" aria-label="Close chat" (click)="close()">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div #log class="log" role="log" aria-live="polite" aria-label="Conversation" tabindex="0">
+
+      @if (chat.messages().length === 0) {
+        <div class="intro">
+          <p class="intro__text">{{ chat.config().intro }}</p>
+
+          <ul class="chips">
+            @for (suggestion of chat.config().suggestions; track suggestion) {
+              <li>
+                <button type="button" class="chip" (click)="ask(suggestion)">{{ suggestion }}</button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @for (message of chat.messages(); track message.id) {
+        <div class="msg" [class.msg--user]="message.role === 'user'" [class.msg--error]="message.error">
+          <span class="visually-hidden">{{ message.role === 'user' ? 'You said:' : 'Assistant said:' }}</span>
+          <p class="msg__text">{{ message.text }}</p>
+
+          @if (message.order; as order) {
+            <a class="order"
+               [routerLink]="chat.config().role === 'admin' ? ['/admin/orders/details', order.orderNumber] : ['/orders', order.orderNumber]"
+               (click)="open.set(false)">
+              <span class="order__head">
+                <strong>{{ order.orderNumber }}</strong>
+                <span class="order__status">{{ order.status }}</span>
+              </span>
+              <span class="order__meta">
+                {{ order.orderDate | date: 'MMM d, y' }} &middot; {{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}
+              </span>
+              <span class="order__items">{{ order.items.join(', ') }}</span>
+            </a>
+          }
+
+          @if (message.products && message.products.length > 0) {
+            <ul class="products">
+              @for (product of message.products; track product.id) {
+                <li>
+                  <a class="product" [routerLink]="['/products', product.id]" (click)="open.set(false)">
+                    @if (product.imageUrl) {
+                      <img class="product__img" [src]="product.imageUrl" alt="" width="48" height="48" loading="lazy" />
+                    }
+                    <span class="product__text">
+                      <span class="product__name">{{ product.name }}</span>
+                      <span class="product__price">{{ product.price | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (message.escalate && message.supportEmail) {
+            <p class="handoff">
+              Need a person? Email <a [href]="'mailto:' + message.supportEmail">{{ message.supportEmail }}</a> or use the
+              <a routerLink="/contact" (click)="open.set(false)">Contact page</a>.
+            </p>
+          }
+
+          @if (isLastAssistant(message)) {
+            <div class="rate">
+              @if (message.rated) {
+                <span class="rate__thanks">Thanks for the feedback.</span>
+              } @else {
+                <button type="button" class="link" (click)="rate(message, 'up')">Helpful</button>
+                <button type="button" class="link" (click)="rate(message, 'down')">Not helpful</button>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (chat.busy()) {
+        <p class="typing" role="status">Assistant is typing&hellip;</p>
+      }
+    </div>
+
+    <form class="composer" (ngSubmit)="submit()" novalidate>
+      <label class="visually-hidden" for="chat-input">Message</label>
+
+      <textarea #input
+                id="chat-input"
+                name="message"
+                rows="2"
+                class="composer__input"
+                [class.composer__input--invalid]="error()"
+                [attr.aria-invalid]="error() ? 'true' : null"
+                [attr.aria-describedby]="error() ? 'chat-error' : null"
+                placeholder="Type your question"
+                autocomplete="off"
+                [ngModel]="draft()"
+                (ngModelChange)="draft.set($event)"
+                (blur)="touched.set(true)"
+                (keydown.enter)="onEnter($event)"></textarea>
+
+      <div class="composer__row">
+        <p id="chat-error" class="composer__error" role="alert">{{ error() }}</p>
+
+        <span class="composer__count" [class.composer__count--over]="draft().length > maxLength">
+          {{ draft().length }}/{{ maxLength }}
+        </span>
+
+        <button type="submit" class="send" [disabled]="chat.busy()">Send</button>
+      </div>
+    </form>
+  </section>
+}

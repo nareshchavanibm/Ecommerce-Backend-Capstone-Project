@@ -1,275 +1,168 @@
-import {
-  Component,
-  OnInit,
-  computed,
-  signal
-} from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
-import { ProductService } from '../../core/services/product';
 import { InventoryService } from '../../core/services/inventory';
-
+import { ProductService } from '../../core/services/product';
 import { Inventory } from '../../shared/models/inventory.model';
+import { Alert } from '../../shared/ui/alert/alert';
+import { Badge } from '../../shared/ui/badge/badge';
+import { Button } from '../../shared/ui/button/button';
+import { Dialog } from '../../shared/ui/dialog/dialog';
+import { Pagination } from '../../shared/ui/pagination/pagination';
+import { TextInput } from '../../shared/ui/text-input/text-input';
+import { ToastService } from '../../shared/ui/toast/toast.service';
+
+interface StockRow {
+  productId: number;
+  name: string;
+  // null while the product has no stock record yet.
+  stock: number | null;
+  reorderLevel: number | null;
+  low: boolean;
+}
+
+const WHOLE_NUMBER = /^\d{1,7}$/;
 
 @Component({
   selector: 'app-inventory',
-  imports: [],
+  imports: [ReactiveFormsModule, Alert, Badge, Button, Dialog, Pagination, TextInput],
   templateUrl: './inventory.html',
   styleUrl: './inventory.css'
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent {
 
-  inventories = signal<Inventory[]>([]);
+  private readonly pageSize = 10;
 
-  readonly pageSize = 10;
-  currentPage = signal(1);
+  protected readonly rows = signal<StockRow[]>([]);
 
-  totalPages = computed(() => {
-    const count = this.inventories().length;
-    return count === 0
-      ? 1
-      : Math.ceil(count / this.pageSize);
+  protected readonly page = signal(1);
+
+  protected readonly loading = signal(true);
+
+  protected readonly errorMessage = signal('');
+
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.rows().length / this.pageSize)));
+
+  protected readonly pagedRows = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+
+    return this.rows().slice(start, start + this.pageSize);
   });
 
-  pagedInventories = computed(() => {
-    const start =
-      (this.currentPage() - 1) * this.pageSize;
+  // Update dialog
+  protected readonly dialogOpen = signal(false);
 
-    return this.inventories().slice(
-      start,
-      start + this.pageSize
-    );
+  protected readonly editing = signal<StockRow | null>(null);
+
+  protected readonly saving = signal(false);
+
+  protected readonly saveError = signal('');
+
+  protected readonly form = new FormGroup({
+    quantity: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(WHOLE_NUMBER)] }),
+    reorderLevel: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(WHOLE_NUMBER)] })
   });
 
-  loading = signal(true);
-
-  errorMessage = signal('');
-
-  actionProductId = signal<number | null>(null);
+  protected readonly messages = {
+    quantity: { required: 'Enter the stock quantity.', pattern: 'Use a whole number, 0 or more.' },
+    reorderLevel: { required: 'Enter the reorder level.', pattern: 'Use a whole number, 0 or more.' }
+  };
 
   constructor(
     private productService: ProductService,
-    private inventoryService: InventoryService
-  ) { }
-
-  ngOnInit(): void {
-    this.loadInventory();
+    private inventoryService: InventoryService,
+    private toast: ToastService
+  ) {
+    this.load();
   }
 
-  loadInventory(): void {
+  protected load(): void {
 
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.productService.getProducts().subscribe({
+    forkJoin({
+      products: this.productService.getProducts(),
+      inventory: this.inventoryService.getAllInventory()
+    }).subscribe({
+      next: ({ products, inventory }) => {
 
-      next: (products) => {
+        const records = new Map<number, Inventory>(inventory.map(record => [record.productId, record]));
 
-        if (products.length === 0) {
+        this.rows.set(products.map(product => {
+          const record = records.get(product.id);
 
-          this.inventories.set([]);
-          this.currentPage.set(1);
+          return {
+            productId: product.id,
+            name: product.name,
+            stock: record ? record.stockQuantity : null,
+            reorderLevel: record ? record.reorderLevel : null,
+            low: record ? record.isLowStock : false
+          };
+        }));
 
-          this.loading.set(false);
-
-          return;
-        }
-
-        let completed = 0;
-
-        const results: Inventory[] = [];
-
-        products.forEach(product => {
-
-          this.inventoryService
-            .getInventory(product.id)
-            .subscribe({
-
-              next: (inventory) => {
-
-                results.push(inventory);
-
-                completed++;
-
-                if (completed === products.length) {
-
-                  this.inventories.set(results);
-                  this.currentPage.set(1);
-
-                  this.loading.set(false);
-                }
-              },
-
-              error: (error) => {
-
-                console.error(
-                  `Error loading inventory for product ${product.id}:`,
-                  error
-                );
-
-                completed++;
-
-                if (completed === products.length) {
-
-                  this.inventories.set(results);
-                  this.currentPage.set(1);
-
-                  this.loading.set(false);
-                }
-              }
-
-            });
-
-        });
-
+        this.page.set(1);
+        this.loading.set(false);
       },
-
       error: (error) => {
-
-        console.error(
-          'Error loading products:',
-          error
-        );
-
-        this.errorMessage.set(
-          error.error?.message ||
-          'Unable to load inventory.'
-        );
-
-        this.currentPage.set(1);
+        this.errorMessage.set(error.error?.message || 'Unable to load inventory.');
         this.loading.set(false);
       }
-
     });
   }
 
-  addStock(productId: number): void {
+  protected openDialog(row: StockRow): void {
 
-    const quantityText =
-      prompt('Enter quantity to add:');
+    this.editing.set(row);
+    this.saveError.set('');
 
-    if (quantityText === null) {
-      return;
-    }
+    this.form.reset({
+      quantity: row.stock === null ? '0' : String(row.stock),
+      reorderLevel: row.reorderLevel === null ? '5' : String(row.reorderLevel)
+    });
 
-    const quantity = Number(quantityText);
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity <= 0
-    ) {
-
-      this.errorMessage.set(
-        'Please enter a valid positive quantity.'
-      );
-
-      return;
-    }
-
-    this.actionProductId.set(productId);
-    this.errorMessage.set('');
-
-    this.inventoryService
-      .addStock(
-        productId,
-        { quantity }
-      )
-      .subscribe({
-
-        next: () => {
-
-          this.actionProductId.set(null);
-
-          this.loadInventory();
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error adding stock:',
-            error
-          );
-
-          this.actionProductId.set(null);
-
-          this.errorMessage.set(
-            error.error?.message ||
-            error.error ||
-            'Unable to add stock.'
-          );
-        }
-
-      });
+    this.dialogOpen.set(true);
   }
 
-  removeStock(productId: number): void {
+  protected save(): void {
 
-    const quantityText =
-      prompt('Enter quantity to remove:');
+    const row = this.editing();
 
-    if (quantityText === null) {
+    if (!row) {
       return;
     }
 
-    const quantity = Number(quantityText);
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity <= 0
-    ) {
-
-      this.errorMessage.set(
-        'Please enter a valid positive quantity.'
-      );
-
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
-    this.actionProductId.set(productId);
-    this.errorMessage.set('');
+    const value = this.form.getRawValue();
+    const request = { quantity: Number(value.quantity), reorderLevel: Number(value.reorderLevel) };
 
-    this.inventoryService
-      .removeStock(
-        productId,
-        { quantity }
-      )
-      .subscribe({
+    this.saveError.set('');
+    this.saving.set(true);
 
-        next: () => {
+    const call = row.stock === null
+      ? this.inventoryService.createInventory(row.productId, request)
+      : this.inventoryService.updateInventory(row.productId, request);
 
-          this.actionProductId.set(null);
+    call.subscribe({
+      next: (record) => {
 
-          this.loadInventory();
-        },
+        this.rows.update(rows => rows.map(item => item.productId === row.productId
+          ? { ...item, stock: record.stockQuantity, reorderLevel: record.reorderLevel, low: record.isLowStock }
+          : item));
 
-        error: (error) => {
-
-          console.error(
-            'Error removing stock:',
-            error
-          );
-
-          this.actionProductId.set(null);
-
-          this.errorMessage.set(
-            error.error?.message ||
-            error.error ||
-            'Unable to remove stock.'
-          );
-        }
-
-      });
-  }
-
-  goToPreviousPage(): void {
-    if (this.currentPage() > 1) {
-      this.currentPage.update(page => page - 1);
-    }
-  }
-
-  goToNextPage(): void {
-    if (this.currentPage() < this.totalPages()) {
-      this.currentPage.update(page => page + 1);
-    }
+        this.saving.set(false);
+        this.dialogOpen.set(false);
+        this.toast.success(`Stock updated for ${row.name}.`);
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.saveError.set(error.error?.message || 'We could not update the stock.');
+      }
+    });
   }
 }
-``

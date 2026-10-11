@@ -1,0 +1,41 @@
+<article class="card">
+  <div class="card__media">
+    @if (image) {
+      <img [src]="image" [alt]="product().name" width="400" height="300" loading="lazy" (error)="imageFailed.set(true)" />
+    } @else {
+      <svg class="card__placeholder" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false">
+        <rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2" />
+        <circle cx="17" cy="20" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M6 33l10-8 8 6 7-5 11 8" fill="none" stroke="currentColor" stroke-width="2" />
+      </svg>
+    }
+
+    @if (!inStock) {
+      <app-badge class="card__badge" variant="danger">Out of stock</app-badge>
+    }
+  </div>
+
+  <div class="card__body">
+    <h3 class="card__title">
+      <a class="card__link" [routerLink]="['/products', product().id]">{{ product().name }}</a>
+    </h3>
+
+    <p class="card__description">{{ product().description }}</p>
+
+    <p class="card__price">{{ product().price | currency: 'INR' : 'symbol' : '1.0-2' }}</p>
+
+    @if (canBuy) {
+      <button
+        app-button
+        type="button"
+        class="card__action"
+        fullWidth
+        [loading]="adding()"
+        [disabled]="!inStock"
+        (click)="addToCart.emit(product())"
+      >
+        {{ inStock ? 'Add to cart' : 'Unavailable' }}
+      </button>
+    }
+  </div>
+</article>

@@ -1,0 +1,68 @@
+:host {
+  display: block;
+}
+
+.banner {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-bottom: 1px solid var(--color-warning);
+}
+
+.banner__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding-block: var(--space-2);
+}
+
+.banner__icon {
+  flex: none;
+}
+
+.banner__text {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.banner__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-4);
+  background: var(--color-warning);
+  color: var(--color-bg);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.banner__action:hover {
+  color: var(--color-bg);
+  opacity: 0.9;
+}
+
+.banner__action:focus-visible,
+.banner__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.banner__close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: 50%;
+}
+
+.banner__close:hover:not(:disabled) {
+  background: rgb(181 71 8 / 12%);
+}

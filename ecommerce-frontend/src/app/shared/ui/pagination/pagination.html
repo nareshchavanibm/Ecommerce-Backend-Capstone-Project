@@ -1,0 +1,32 @@
+<nav class="pager" aria-label="Pagination">
+  <button type="button" class="pager__nav" aria-label="Previous page" [disabled]="page() <= 1" (click)="go(page() - 1)">
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+      <path d="M10.5 2.5L5 8l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+
+  <ul class="pager__list">
+    @for (p of pages(); track $index) {
+      <li>
+        @if (p === null) {
+          <span class="pager__gap" aria-hidden="true">&hellip;</span>
+        } @else {
+          <button type="button"
+                  class="pager__btn"
+                  [class.pager__btn--active]="p === page()"
+                  [attr.aria-current]="p === page() ? 'page' : null"
+                  [attr.aria-label]="'Page ' + p"
+                  (click)="go(p)">
+            {{ p }}
+          </button>
+        }
+      </li>
+    }
+  </ul>
+
+  <button type="button" class="pager__nav" aria-label="Next page" [disabled]="page() >= totalPages()" (click)="go(page() + 1)">
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+      <path d="M5.5 2.5L11 8l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+</nav>

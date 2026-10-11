@@ -11,5 +11,8 @@ namespace UserService.Application.Interfaces.Repositories
         Task AddAsync(User user);
 
         Task<bool> ExistsByEmailAsync(string email);
+
+        // Persists tracked changes made to a user.
+        Task SaveAsync();
     }
 }

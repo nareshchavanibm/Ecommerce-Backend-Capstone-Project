@@ -1,0 +1,201 @@
+<div class="page container">
+
+  <h1 class="page__title">Checkout</h1>
+
+  @if (loading()) {
+    <div class="layout" aria-busy="true" aria-label="Loading checkout">
+      <div class="skeletons">
+        @for (n of placeholders; track n) {
+          <app-skeleton shape="block" height="140px" />
+        }
+      </div>
+      <app-skeleton shape="block" height="220px" />
+    </div>
+  } @else if (loadError()) {
+    <div class="state">
+      <app-alert variant="error">{{ loadError() }}</app-alert>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <div class="layout">
+
+      <section class="main" aria-live="polite">
+
+        @if (infoMessage()) {
+          <app-alert variant="info">{{ infoMessage() }}</app-alert>
+        }
+
+        @switch (stage()) {
+
+          @case ('processing') {
+            <div class="status" role="status">
+              <svg class="status__spinner" viewBox="0 0 16 16" width="32" height="32" aria-hidden="true" focusable="false">
+                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="2" />
+                <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="currentColor" stroke-width="2" />
+              </svg>
+              <h2 class="status__title">Processing your order</h2>
+              <p class="status__text">Please keep this page open. We will take you to your confirmation once the payment is confirmed.</p>
+            </div>
+          }
+
+          @case ('pending') {
+            <div class="status" role="status">
+              <h2 class="status__title">Payment pending</h2>
+              <p class="status__text">
+                Order {{ order()?.orderNumber }} has been created, but the payment has not been confirmed yet.
+                Your order is not complete until it is.
+              </p>
+
+              @if (errorMessage()) {
+                <app-alert variant="info">{{ errorMessage() }}</app-alert>
+              }
+
+              <div class="status__actions">
+                <button app-button type="button" (click)="checkPaymentStatus()">Check payment status</button>
+                <button app-button type="button" variant="outline" [loading]="cancelling()" (click)="cancelOrder()">Cancel order</button>
+              </div>
+            </div>
+          }
+
+          @case ('failed') {
+            <div class="status">
+              <app-alert variant="error">{{ errorMessage() }}</app-alert>
+
+              <h2 class="status__title">Payment not completed</h2>
+              <p class="status__text">
+                Order {{ order()?.orderNumber }} is still waiting for payment.
+                Try again with the same or a different method, or cancel the order.
+              </p>
+
+              <fieldset class="methods">
+                <legend class="methods__legend">Payment method</legend>
+                @for (option of methods; track option.value) {
+                  <label class="method">
+                    <input type="radio" name="retry-method" [formControl]="method" [value]="option.value" />
+                    <span>{{ option.label }}</span>
+                  </label>
+                }
+              </fieldset>
+
+              <div class="status__actions">
+                <button app-button type="button" [disabled]="method.invalid" (click)="retryPayment()">Try payment again</button>
+                <button app-button type="button" variant="outline" [loading]="cancelling()" (click)="cancelOrder()">Cancel order</button>
+              </div>
+            </div>
+          }
+
+          @default {
+            @if (errorMessage()) {
+              <app-alert variant="error">{{ errorMessage() }}</app-alert>
+            }
+
+            <form class="form" (submit)="submit($event)" novalidate>
+
+              <section class="card" aria-labelledby="contact-title">
+                <h2 id="contact-title" class="card__title">Contact</h2>
+                <p class="card__text">
+                  Order updates are tied to your account{{ email ? ':' : '.' }}
+                  @if (email) {
+                    <strong>{{ email }}</strong>
+                  }
+                </p>
+              </section>
+
+              <section class="card" aria-labelledby="address-title">
+                <h2 id="address-title" class="card__title">Delivery address</h2>
+
+                @if (address(); as selected) {
+                  @if (changingAddress()) {
+                    <fieldset class="methods">
+                      <legend class="visually-hidden">Choose a delivery address</legend>
+
+                      @for (item of addresses(); track item.id) {
+                        <label class="method">
+                          <input type="radio" name="address" [value]="item.id" [checked]="selected.id === item.id" (change)="chooseAddress(item.id)" />
+                          <span>
+                            <strong>{{ item.fullName }}</strong>, {{ item.phone }}<br />
+                            {{ item.addressLine1 }}@if (item.addressLine2) {, {{ item.addressLine2 }}}<br />
+                            {{ item.city }}, {{ item.state }} {{ item.postalCode }}, {{ item.country }}
+                          </span>
+                        </label>
+                      }
+                    </fieldset>
+                  } @else {
+                    <p class="card__text">
+                      <strong>{{ selected.fullName }}</strong>, {{ selected.phone }}<br />
+                      {{ selected.addressLine1 }}@if (selected.addressLine2) {, {{ selected.addressLine2 }}}<br />
+                      {{ selected.city }}, {{ selected.state }} {{ selected.postalCode }}, {{ selected.country }}
+                    </p>
+                  }
+
+                  <div class="address-actions">
+                    @if (addresses().length > 1) {
+                      <button type="button" class="link-btn" [attr.aria-expanded]="changingAddress()" (click)="changingAddress.set(!changingAddress())">
+                        {{ changingAddress() ? 'Cancel' : 'Change' }}
+                      </button>
+                    }
+                    <a routerLink="/profile" [queryParams]="{ addAddress: 1, returnTo: '/checkout' }">Add new address</a>
+                  </div>
+                } @else {
+                  <p class="card__text">You have no saved delivery address. Add one to place your order.</p>
+                  <a routerLink="/profile" [queryParams]="{ addAddress: 1, returnTo: '/checkout' }">Add address</a>
+                }
+              </section>
+
+              <section class="card" aria-labelledby="payment-title">
+                <h2 id="payment-title" class="card__title">Payment method</h2>
+
+                <fieldset class="methods" [attr.aria-describedby]="method.touched && method.invalid ? 'method-error' : null">
+                  <legend class="visually-hidden">Choose a payment method</legend>
+
+                  @for (option of methods; track option.value) {
+                    <label class="method">
+                      <input type="radio" name="method" [formControl]="method" [value]="option.value" (blur)="method.markAsTouched()" />
+                      <span>{{ option.label }}</span>
+                    </label>
+                  }
+                </fieldset>
+
+                <div aria-live="polite">
+                  @if (method.touched && method.invalid) {
+                    <p id="method-error" class="field-error">Choose a payment method to continue.</p>
+                  }
+                </div>
+
+                <p class="card__text">
+                  Payments are handled by the store&rsquo;s payment service. No card details are entered or stored on this page.
+                </p>
+              </section>
+
+              <button app-button type="submit" class="submit" [loading]="stage() === 'processing'">
+                {{ order() ? 'Pay for order ' + order()!.orderNumber : 'Place order' }} &middot; {{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}
+              </button>
+
+              <a class="back" routerLink="/cart">Back to cart</a>
+            </form>
+          }
+        }
+      </section>
+
+      <aside class="summary" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="summary__title">Order summary</h2>
+
+        <ul class="summary__items">
+          @for (item of items(); track item.productId) {
+            <li class="summary__item">
+              <span class="summary__name">{{ item.productName }} <span class="summary__qty">&times; {{ item.quantity }}</span></span>
+              <span>{{ lineTotal(item) | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+            </li>
+          }
+        </ul>
+
+        <p class="summary__total">
+          <span>Total</span>
+          <span>{{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+        </p>
+
+        <p class="summary__note">The store calculates and confirms the final total when the order is placed.</p>
+      </aside>
+    </div>
+  }
+</div>

@@ -1,0 +1,48 @@
+<div class="shell">
+  <div class="shell__inner">
+
+    <aside class="side">
+
+      <nav class="side__nav" aria-label="Admin">
+        <p class="side__group">Main</p>
+
+        <ul class="side__list">
+          @for (item of nav; track item.link) {
+            <li>
+              <a class="side__link"
+                 [routerLink]="item.link"
+                 routerLinkActive="side__link--active"
+                 [routerLinkActiveOptions]="{ exact: !!item.exact }">
+                <svg class="side__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                  <path [attr.d]="item.icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span>{{ item.label }}</span>
+              </a>
+
+              @if (item.children) {
+                <ul class="side__sub">
+                  @for (child of item.children; track child.link) {
+                    <li>
+                      <a class="side__sublink" [routerLink]="child.link" routerLinkActive="side__sublink--active">{{ child.label }}</a>
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <div class="side__footer">
+        <p class="side__who" [title]="email">{{ email }}</p>
+        <a class="side__store" routerLink="/home">Back to store</a>
+      </div>
+
+    </aside>
+
+    <section class="content">
+      <router-outlet />
+    </section>
+
+  </div>
+</div>

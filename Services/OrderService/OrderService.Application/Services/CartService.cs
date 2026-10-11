@@ -1,96 +1,78 @@
+using Microsoft.Extensions.Logging;
 using OrderService.Application.DTOs.Cart;
+using OrderService.Application.Exceptions;
+using OrderService.Application.Interfaces.Clients;
 using OrderService.Application.Interfaces.Repositories;
 using OrderService.Application.Interfaces.Services;
 using OrderService.Domain.Entities;
 
 namespace OrderService.Application.Services
 {
-    public class CartService : ICartService
+    public class CartService(
+        ICartRepository cartRepository,
+        ICartItemRepository cartItemRepository,
+        IProductCatalog productCatalog,
+        ILogger<CartService> logger) : ICartService
     {
-        private readonly ICartRepository _cartRepository;
-        private readonly ICartItemRepository _cartItemRepository;
-
-        public CartService(
-            ICartRepository cartRepository,
-            ICartItemRepository cartItemRepository)
-        {
-            _cartRepository = cartRepository;
-            _cartItemRepository = cartItemRepository;
-        }
+        // Sanity limit per line, not a stock rule; stock is checked when the order is placed.
+        private const int MaxQuantityPerItem = 1000;
 
         public async Task<CartResponseDto> GetCartAsync(int userId)
         {
-            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            var cart = await GetOrCreateCartAsync(userId);
 
-            if (cart == null)
-            {
-                cart = new Cart
-                {
-                    UserId = userId
-                };
-
-                cart = await _cartRepository.AddAsync(cart);
-            }
-
-            var items = await _cartItemRepository.GetByCartIdAsync(cart.Id);
-
-            return new CartResponseDto
-            {
-                Id = cart.Id,
-                UserId = cart.UserId,
-                CreatedAt = cart.CreatedAt,
-                Items = items.Select(item => new CartItemDto
-                {
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice
-                }).ToList()
-            };
+            return await BuildResponseAsync(cart);
         }
 
         public async Task<CartResponseDto> AddItemAsync(
             int userId,
-            CartItemDto dto)
+            AddCartItemRequest request)
         {
-            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            ValidateQuantity(request.Quantity);
 
-            if (cart == null)
+            if (request.ProductId <= 0)
             {
-                cart = new Cart
-                {
-                    UserId = userId
-                };
-
-                cart = await _cartRepository.AddAsync(cart);
+                throw new BusinessRuleException("Product ID must be greater than 0.");
             }
 
-            var existingItems =
-                await _cartItemRepository.GetByCartIdAsync(cart.Id);
+            var products = await productCatalog.GetProductsAsync([request.ProductId]);
 
-            var existingItem =
-                existingItems.FirstOrDefault(x => x.ProductId == dto.ProductId);
-
-            if (existingItem != null)
+            if (!products.TryGetValue(request.ProductId, out var product))
             {
-                existingItem.Quantity += dto.Quantity;
-                existingItem.UnitPrice = dto.UnitPrice;
+                throw new NotFoundException("Product not found.");
+            }
 
-                await _cartItemRepository.UpdateAsync(existingItem);
+            if (!product.IsActive)
+            {
+                throw new BusinessRuleException("This product is no longer available.");
+            }
+
+            var cart = await GetOrCreateCartAsync(userId);
+
+            var existing = (await cartItemRepository.GetByCartIdAsync(cart.Id))
+                .FirstOrDefault(x => x.ProductId == request.ProductId);
+
+            if (existing != null)
+            {
+                ValidateQuantity(existing.Quantity + request.Quantity);
+
+                existing.Quantity += request.Quantity;
+                existing.UnitPrice = product.Price;
+
+                await cartItemRepository.UpdateAsync(existing);
             }
             else
             {
-                var cartItem = new CartItem
+                await cartItemRepository.AddAsync(new CartItem
                 {
                     CartId = cart.Id,
-                    ProductId = dto.ProductId,
-                    Quantity = dto.Quantity,
-                    UnitPrice = dto.UnitPrice
-                };
-
-                await _cartItemRepository.AddAsync(cartItem);
+                    ProductId = request.ProductId,
+                    Quantity = request.Quantity,
+                    UnitPrice = product.Price
+                });
             }
 
-            return await GetCartAsync(userId);
+            return await BuildResponseAsync(cart);
         }
 
         public async Task<CartResponseDto> UpdateItemAsync(
@@ -98,58 +80,117 @@ namespace OrderService.Application.Services
             int productId,
             int quantity)
         {
-            if (quantity <= 0)
-            {
-                throw new ArgumentException(
-                    "Quantity must be greater than zero.");
-            }
+            ValidateQuantity(quantity);
 
-            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            var cart = await GetOrCreateCartAsync(userId);
 
-            if (cart == null)
-            {
-                throw new KeyNotFoundException("Cart not found.");
-            }
-
-            var items = await _cartItemRepository.GetByCartIdAsync(cart.Id);
-
-            var item =
-                items.FirstOrDefault(x => x.ProductId == productId);
-
-            if (item == null)
-            {
-                throw new KeyNotFoundException("Cart item not found.");
-            }
+            var item = (await cartItemRepository.GetByCartIdAsync(cart.Id))
+                .FirstOrDefault(x => x.ProductId == productId)
+                ?? throw new NotFoundException("Cart item not found.");
 
             item.Quantity = quantity;
 
-            await _cartItemRepository.UpdateAsync(item);
+            await cartItemRepository.UpdateAsync(item);
 
-            return await GetCartAsync(userId);
+            return await BuildResponseAsync(cart);
         }
 
-        public async Task RemoveItemAsync(
+        public async Task<CartResponseDto> RemoveItemAsync(
             int userId,
             int productId)
         {
-            var cart = await _cartRepository.GetByUserIdAsync(userId);
+            var cart = await GetOrCreateCartAsync(userId);
+
+            var item = (await cartItemRepository.GetByCartIdAsync(cart.Id))
+                .FirstOrDefault(x => x.ProductId == productId)
+                ?? throw new NotFoundException("Cart item not found.");
+
+            await cartItemRepository.DeleteAsync(item);
+
+            return await BuildResponseAsync(cart);
+        }
+
+        public async Task ClearAsync(int userId)
+        {
+            var cart = await cartRepository.GetByUserIdAsync(userId);
 
             if (cart == null)
             {
-                throw new KeyNotFoundException("Cart not found.");
+                return;
             }
 
-            var items = await _cartItemRepository.GetByCartIdAsync(cart.Id);
+            var items = (await cartItemRepository.GetByCartIdAsync(cart.Id)).ToList();
 
-            var item =
-                items.FirstOrDefault(x => x.ProductId == productId);
-
-            if (item == null)
+            if (items.Count > 0)
             {
-                throw new KeyNotFoundException("Cart item not found.");
+                await cartItemRepository.DeleteRangeAsync(items);
+            }
+        }
+
+        private async Task<Cart> GetOrCreateCartAsync(int userId)
+        {
+            return await cartRepository.GetByUserIdAsync(userId)
+                ?? await cartRepository.AddAsync(new Cart { UserId = userId });
+        }
+
+        private async Task<CartResponseDto> BuildResponseAsync(Cart cart)
+        {
+            var items = (await cartItemRepository.GetByCartIdAsync(cart.Id)).ToList();
+
+            IReadOnlyDictionary<int, CatalogProduct> products =
+                new Dictionary<int, CatalogProduct>();
+
+            if (items.Count > 0)
+            {
+                try
+                {
+                    products = await productCatalog.GetProductsAsync(
+                        items.Select(x => x.ProductId));
+                }
+                catch (DependencyUnavailableException ex)
+                {
+                    // Show the saved prices rather than failing the whole cart.
+                    logger.LogWarning(ex, "Product catalog unavailable while building cart {CartId}.", cart.Id);
+                }
             }
 
-            await _cartItemRepository.DeleteAsync(item);
+            var lines = items.Select(item =>
+            {
+                var found = products.TryGetValue(item.ProductId, out var product);
+                var price = found ? product!.Price : item.UnitPrice;
+
+                return new CartItemDto
+                {
+                    ProductId = item.ProductId,
+                    ProductName = found ? product!.Name : $"Product #{item.ProductId}",
+                    Price = price,
+                    Quantity = item.Quantity,
+                    TotalPrice = price * item.Quantity
+                };
+            }).ToList();
+
+            return new CartResponseDto
+            {
+                Id = cart.Id,
+                UserId = cart.UserId,
+                CreatedAt = cart.CreatedAt,
+                Items = lines,
+                TotalAmount = lines.Sum(x => x.TotalPrice)
+            };
+        }
+
+        private static void ValidateQuantity(int quantity)
+        {
+            if (quantity < 1)
+            {
+                throw new BusinessRuleException("Quantity must be greater than zero.");
+            }
+
+            if (quantity > MaxQuantityPerItem)
+            {
+                throw new BusinessRuleException(
+                    $"You can have at most {MaxQuantityPerItem} of one item in your cart.");
+            }
         }
     }
 }

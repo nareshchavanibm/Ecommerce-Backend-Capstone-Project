@@ -1,0 +1,88 @@
+:host {
+  display: block;
+}
+
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+}
+
+.card {
+  display: grid;
+  width: 100%;
+  max-width: 1000px;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* Mobile: the decorative panel collapses into a slim brand strip */
+.strip {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.strip__headline {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+}
+
+.strip__sub {
+  color: var(--color-accent-strong);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+
+.panel {
+  display: none;
+}
+
+.form-side {
+  position: relative;
+  padding: var(--space-6);
+}
+
+.form-wrap {
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.corner {
+  display: none;
+}
+
+@media (min-width: 672px) {
+  .form-side {
+    padding: var(--space-10);
+  }
+}
+
+@media (min-width: 1056px) {
+  .card {
+    grid-template-columns: 1fr 1fr;
+    min-height: 640px;
+  }
+
+  .strip {
+    display: none;
+  }
+
+  .panel {
+    display: block;
+  }
+
+  .form-side {
+    display: grid;
+    align-items: center;
+  }
+}

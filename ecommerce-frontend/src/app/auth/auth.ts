@@ -87,6 +87,22 @@ export class AuthService {
     );
   }
 
+  forgotPassword(email: string): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  resendOtp(email: string): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/resend-otp`, { email });
+  }
+
+  verifyOtp(email: string, code: string): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/verify-otp`, { email, code });
+  }
+
+  resetPassword(email: string, code: string, newPassword: string): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/reset-password`, { email, code, newPassword });
+  }
+
   getToken(): string | null {
     return localStorage.getItem('token');
   }

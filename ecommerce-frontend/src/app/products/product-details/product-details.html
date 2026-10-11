@@ -1,64 +1,126 @@
-@if (loading()) {
+<div class="page container">
 
-<p>
-  Loading product...
-</p>
+  @if (loading()) {
+    <div class="layout" aria-busy="true" aria-label="Loading product">
+      <div class="gallery">
+        <app-skeleton shape="block" height="auto" class="skeleton-media" />
+      </div>
+      <div class="skeleton-info">
+        <app-skeleton width="30%" />
+        <app-skeleton width="75%" height="2rem" />
+        <app-skeleton width="25%" height="1.5rem" />
+        <app-skeleton />
+        <app-skeleton width="90%" />
+      </div>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state">
+      <app-alert variant="error">{{ errorMessage() }}</app-alert>
+      <a class="btn btn--primary" routerLink="/products">Back to products</a>
+    </div>
+  } @else if (product(); as item) {
 
-}
+    <app-breadcrumbs [items]="crumbs()" />
 
-@else if (errorMessage()) {
+    <div class="layout">
 
-<p>
-  {{ errorMessage() }}
-</p>
+      <div class="gallery">
+        @if (image()) {
+          <button type="button" class="gallery__main gallery__main--zoom" [attr.aria-label]="'Enlarge image of ' + item.name" (click)="zoomOpen.set(true)">
+            <img [src]="image()" [alt]="item.name" width="800" height="800" fetchpriority="high" (error)="imageFailed.set(true)" />
+            <span class="gallery__hint" aria-hidden="true">Click to enlarge</span>
+          </button>
+        } @else {
+          <div class="gallery__main" role="img" [attr.aria-label]="'No image available for ' + item.name">
+            <svg viewBox="0 0 48 48" width="64" height="64" aria-hidden="true" focusable="false">
+              <rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2" />
+              <circle cx="17" cy="20" r="3" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M6 33l10-8 8 6 7-5 11 8" fill="none" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </div>
+        }
+      </div>
 
-}
+      <div class="info">
+        @if (item.categoryName) {
+          <a class="info__category" routerLink="/products" [queryParams]="{ category: item.categoryName }">{{ item.categoryName }}</a>
+        }
 
-@else if (product()) {
+        <h1 class="info__title">{{ item.name }}</h1>
 
-<div class="product-details">
+        <p class="info__id">Product ID: <strong>{{ item.id }}</strong></p>
 
-  <h2>
-    {{ product()!.name }}
-  </h2>
+        <p class="info__price">{{ item.price | currency: 'INR' : 'symbol' : '1.0-2' }}</p>
 
-  <p>
-    {{ product()!.description }}
-  </p>
+        @if (inventory(); as stock) {
+          <p class="info__stock" aria-live="polite">
+            @if (stock.stockQuantity <= 0) {
+              <app-badge variant="danger">Out of stock</app-badge>
+            } @else if (stock.isLowStock) {
+              <app-badge variant="warning">Only {{ stock.stockQuantity }} left</app-badge>
+            } @else {
+              <app-badge variant="success">In stock</app-badge>
+            }
+          </p>
+        }
 
-  <p>
-    <strong>
-      Price:
-    </strong>
+        <p class="info__description">{{ item.description }}</p>
 
-    ₹{{ product()!.price }}
-  </p>
+        @if (authService.getRole() !== 'Admin') {
+        <div class="buy">
+          <app-quantity-stepper
+            label="Quantity"
+            [value]="quantity()"
+            [max]="maxQuantity()"
+            [disabled]="outOfStock() || adding()"
+            (valueChange)="quantity.set($event)" />
 
+          <button app-button type="button" class="buy__add" [loading]="adding()" [disabled]="outOfStock()" (click)="addToCart()">
+            <span class="buy__content">
+              <svg class="buy__icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+                <path d="M1.5 2.5h2.2l1.9 9.2h9.3l1.6-6.7H5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="8" cy="16" r="1.3" fill="currentColor" />
+                <circle cx="14" cy="16" r="1.3" fill="currentColor" />
+              </svg>
+              {{ outOfStock() ? 'Out of stock' : 'Add to cart' }}
+            </span>
+          </button>
+        </div>
 
-  <button type="button"
-          (click)="addToCart()">
+        @if (quantity() > 1) {
+          <p class="buy__total" aria-live="polite">
+            Total for {{ quantity() }}: <strong>{{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}</strong>
+          </p>
+        }
 
-    Add to Cart
+        @if (!authService.isLoggedIn()) {
+          <p class="info__note">You will be asked to log in before adding items to your cart.</p>
+        }
+        }
+      </div>
+    </div>
 
-  </button>
+    @if (related().length > 0) {
+      <section class="related" aria-labelledby="related-title">
+        <h2 id="related-title" class="related__title">You may also like</h2>
 
+        <ul class="related__grid">
+          @for (other of related(); track other.id) {
+            <li>
+              <app-product-card
+                [product]="other"
+                [adding]="cartActions.addingId() === other.id"
+                (addToCart)="cartActions.add($event)" />
+            </li>
+          }
+        </ul>
+      </section>
+    }
 
-  @if (cartMessage()) {
-
-  <p class="cart-message">
-    {{ cartMessage() }}
-  </p>
-
+    @if (image()) {
+      <app-dialog [heading]="item.name" [(open)]="zoomOpen">
+        <img class="zoom" [src]="image()" [alt]="item.name" />
+      </app-dialog>
+    }
   }
-
-
-  <br>
-  <br>
-
-  <a routerLink="/products">
-    Back to Products
-  </a>
-
 </div>
-
-}

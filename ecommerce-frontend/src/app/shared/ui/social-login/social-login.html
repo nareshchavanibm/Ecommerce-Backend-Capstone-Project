@@ -1,0 +1,8 @@
+<div class="divider" role="separator">
+  <span class="divider__text">or</span>
+</div>
+
+<div class="buttons">
+  <app-social-button provider="google" [disabled]="disabled()" (pressed)="google.emit()" />
+  <app-social-button provider="apple" [disabled]="disabled()" (pressed)="apple.emit()" />
+</div>

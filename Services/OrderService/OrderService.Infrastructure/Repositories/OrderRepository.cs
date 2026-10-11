@@ -20,6 +20,12 @@ namespace OrderService.Infrastructure.Repositories
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 
+        public async Task<Order?> GetByOrderNumberAsync(string orderNumber)
+        {
+            return await _context.Orders
+                .FirstOrDefaultAsync(x => x.OrderNumber == orderNumber);
+        }
+
         public async Task<IEnumerable<Order>> GetByUserIdAsync(int userId)
         {
             return await _context.Orders
@@ -28,8 +34,16 @@ namespace OrderService.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Order>> GetAllAsync()
+        {
+            return await _context.Orders
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task<Order> AddAsync(Order order)
         {
+            // Items attached to the order are saved in the same SaveChanges call.
             await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
 

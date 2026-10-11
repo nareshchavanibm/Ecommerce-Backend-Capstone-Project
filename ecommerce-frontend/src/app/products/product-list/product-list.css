@@ -1,67 +1,240 @@
-.filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 30px;
+:host {
+  display: block;
 }
 
-  .filters label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: bold;
-  }
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 
-  .filters input,
-  .filters select {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-  }
+.page {
+  padding-block: var(--space-2) 0;
+}
 
-.filter-buttons {
+.head {
   display: flex;
-  gap: 10px;
-  align-items: end;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-3);
 }
 
-.product-grid {
+.head__title {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.head__title:focus {
+  outline: none;
+}
+
+.head__meta {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+  gap: var(--space-6);
 }
 
-.product-card {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 20px;
-  background: white;
-  color: black;
+/* Desktop sidebar is hidden on small screens (the Filters sheet replaces it) */
+.sidebar {
+  display: none;
 }
 
-  .product-card h3 {
-    margin-top: 0;
-  }
+.sidebar__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
 
-  .product-card a {
-    display: inline-block;
-    margin-top: 10px;
-  }
+.sidebar__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.link-btn {
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  background: transparent;
+  color: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-btn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-primary-hover);
+}
+
+.results {
+  min-width: 0;
+}
+
+/* Toolbar: only the mobile Filters button */
+.toolbar {
+  margin-bottom: var(--space-3);
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.filter-btn:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+}
+
+.filter-btn__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+}
+
+.sort {
+  grid-area: sort;
+}
+
+.sort {
+  grid-area: sort;
+}
+
+/* Active filter chips */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--color-accent);
+  color: var(--color-primary);
+  border: 1px solid var(--color-accent-strong);
+  font-size: var(--text-sm);
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  color: var(--color-primary);
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.skeleton-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.skeleton-card__media {
+  aspect-ratio: 4 / 3;
+}
 
 .pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin: 30px 0;
+  margin-top: var(--space-10);
 }
 
-  .pagination button {
-    padding: 8px 16px;
-    cursor: pointer;
+/* Empty and error states */
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+}
+
+.state--empty {
+  justify-items: center;
+  padding: var(--space-12) var(--space-4);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.state__title {
+  margin: 0;
+}
+
+.state__text {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.dialog-done {
+  width: 100%;
+}
+
+@media (min-width: 672px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+@media (min-width: 1056px) {
+  .layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: var(--space-10);
+    align-items: start;
   }
 
-    .pagination button:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
+  .sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-4));
+    display: block;
+    max-height: calc(100vh - var(--header-height) - var(--space-8));
+    padding: var(--space-5);
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .toolbar {
+    display: none;
+  }
+
+  .filter-btn {
+    display: none;
+  }
+
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+@media (min-width: 1312px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

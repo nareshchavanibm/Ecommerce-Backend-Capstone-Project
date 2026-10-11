@@ -1,0 +1,36 @@
+<app-auth-layout headline="VERIFY YOUR EMAIL" subheadline="ONE QUICK STEP" message="Enter the 6-digit code we sent to confirm it's really you.">
+  <h1 class="auth-form__title">Verify your email</h1>
+  <p class="auth-form__subtitle">We sent a 6-digit code to {{ email }}.</p>
+
+  @if (notice()) {
+    <app-alert variant="info" class="auth-form__alert">{{ notice() }}</app-alert>
+  }
+
+  @if (errorMessage()) {
+    <app-alert class="auth-form__alert">{{ errorMessage() }}</app-alert>
+  }
+
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+    <app-otp-input
+      label="Verification code"
+      formControlName="code"
+      [error]="codeError()"
+      [success]="verified()"
+    />
+
+    <button app-button type="submit" fullWidth [loading]="loading()">Verify</button>
+  </form>
+
+  @if (secondsLeft() > 0) {
+    <p class="auth-form__timer">Resend code in {{ timerText() }}</p>
+  } @else {
+    <button app-button type="button" variant="ghost" [loading]="resending()" (click)="resend()">
+      Resend code
+    </button>
+  }
+
+  <p class="auth-form__footer">
+    Wrong email?
+    <a class="auth-link" routerLink="/forgot-password">Start over</a>
+  </p>
+</app-auth-layout>

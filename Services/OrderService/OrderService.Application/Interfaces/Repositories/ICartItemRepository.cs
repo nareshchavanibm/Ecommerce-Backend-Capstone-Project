@@ -9,5 +9,6 @@ namespace OrderService.Application.Interfaces.Repositories
         Task<CartItem> AddAsync(CartItem cartItem);
         Task UpdateAsync(CartItem cartItem);
         Task DeleteAsync(CartItem cartItem);
+        Task DeleteRangeAsync(IEnumerable<CartItem> cartItems);
     }
 }

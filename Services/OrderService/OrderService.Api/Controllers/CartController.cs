@@ -1,6 +1,6 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using OrderService.Application.DTOs.Cart;
 using OrderService.Application.Interfaces.Services;
 
@@ -13,7 +13,7 @@ namespace OrderService.Api.Controllers
     {
         private readonly ICartService _cartService;
 
-    public CartController(ICartService cartService)
+        public CartController(ICartService cartService)
         {
             _cartService = cartService;
         }
@@ -21,58 +21,45 @@ namespace OrderService.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCart()
         {
-            var userId = GetUserId();
-
-            var cart = await _cartService.GetCartAsync(userId);
-
-            return Ok(cart);
+            return Ok(await _cartService.GetCartAsync(GetUserId()));
         }
 
+        // Prices come from the catalog; only product and quantity are accepted.
         [HttpPost("items")]
         public async Task<IActionResult> AddItem(
-            [FromBody] CartItemDto dto)
+            [FromBody] AddCartItemRequest request)
         {
-            var userId = GetUserId();
-
-            var cart = await _cartService.AddItemAsync(
-                userId,
-                dto);
-
-            return Ok(cart);
+            return Ok(await _cartService.AddItemAsync(GetUserId(), request));
         }
 
         [HttpPut("items/{productId:int}")]
         public async Task<IActionResult> UpdateItem(
             int productId,
-            [FromQuery] int quantity)
+            [FromBody] UpdateCartItemRequest request)
         {
-            var userId = GetUserId();
-
-            var cart = await _cartService.UpdateItemAsync(
-                userId,
+            return Ok(await _cartService.UpdateItemAsync(
+                GetUserId(),
                 productId,
-                quantity);
-
-            return Ok(cart);
+                request.Quantity));
         }
 
         [HttpDelete("items/{productId:int}")]
-        public async Task<IActionResult> RemoveItem(
-            int productId)
+        public async Task<IActionResult> RemoveItem(int productId)
         {
-            var userId = GetUserId();
+            return Ok(await _cartService.RemoveItemAsync(GetUserId(), productId));
+        }
 
-            await _cartService.RemoveItemAsync(
-                userId,
-                productId);
+        [HttpDelete]
+        public async Task<IActionResult> Clear()
+        {
+            await _cartService.ClearAsync(GetUserId());
 
             return NoContent();
         }
 
         private int GetUserId()
         {
-            var userIdValue =
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (!int.TryParse(userIdValue, out var userId))
             {
@@ -83,6 +70,4 @@ namespace OrderService.Api.Controllers
             return userId;
         }
     }
-
-
 }

@@ -5,6 +5,9 @@ namespace OrderService.Domain.Entities
 {
     public class Order : BaseEntity
     {
+        // Customer-facing reference; the integer Id stays internal.
+        public string OrderNumber { get; set; } = string.Empty;
+
         public int UserId { get; set; }
 
         public decimal TotalAmount { get; set; }

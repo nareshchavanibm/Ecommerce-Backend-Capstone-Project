@@ -1,125 +1,114 @@
-<h2>My Cart</h2>
+<div class="page container">
 
-@if (loading()) {
+  <h1 class="page__title">Your cart</h1>
 
-<p>Loading cart...</p>
-
-} @else if (errorMessage()) {
-
-<p>{{ errorMessage() }}</p>
-
-} @else if (!cart() || cart()!.items.length === 0) {
-
-<div class="empty-cart">
-
-  <h3>Your cart is empty</h3>
-
-  <p>
-    Add some products to your cart.
-  </p>
-
-  <a routerLink="/products">
-    Continue Shopping
-  </a>
-
-</div>
-
-} @else {
-
-<div class="cart-container">
-
-  @for (item of cart()!.items; track item.productId) {
-
-  <div class="cart-item">
-
-    <div class="product-info">
-
-      <h3>
-        {{ item.productName }}
-      </h3>
-
-      <p>
-        Price: ₹{{ item.price }}
-      </p>
-
+  @if (loading()) {
+    <div class="layout" aria-busy="true" aria-label="Loading cart">
+      <div class="skeletons">
+        @for (n of placeholders; track n) {
+          <app-skeleton shape="block" height="112px" />
+        }
+      </div>
+      <app-skeleton shape="block" height="220px" />
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state">
+      <app-alert variant="error">{{ errorMessage() }}</app-alert>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty">
+      <h2 class="empty__title">Your cart is empty</h2>
+      <p class="empty__text">Add something you like and it will be waiting for you here.</p>
+      <a class="btn btn--primary" routerLink="/products">Start shopping</a>
     </div>
 
+    @if (suggestions().length > 0) {
+      <section class="suggest" aria-labelledby="suggest-title">
+        <h2 id="suggest-title" class="suggest__title">You might like</h2>
+        <ul class="suggest__grid">
+          @for (product of suggestions(); track product.id) {
+            <li>
+              <app-product-card
+                [product]="product"
+                [adding]="cartActions.addingId() === product.id"
+                (addToCart)="cartActions.add($event)" />
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  } @else {
+    <div class="layout">
 
-    <div class="quantity">
+      <section aria-label="Items in your cart">
+        <ul class="items">
+          @for (item of items(); track item.productId) {
+            <li class="item" [class.item--busy]="busy().has(item.productId)">
 
-      <button (click)="updateQuantity(
-              item.productId,
-              item.quantity - 1
-            )"
-              [disabled]="item.quantity === 1">
+              <a class="item__media" [routerLink]="['/products', item.productId]" [attr.aria-label]="'View ' + item.productName">
+                @if (images()[item.productId]; as src) {
+                  <img [src]="src" alt="" width="96" height="96" loading="lazy" />
+                }
+              </a>
 
-        −
+              <div class="item__body">
+                <a class="item__name" [routerLink]="['/products', item.productId]">{{ item.productName }}</a>
+                <p class="item__price">{{ item.price | currency: 'INR' : 'symbol' : '1.0-2' }} each</p>
 
-      </button>
+                <div class="item__controls">
+                  <app-quantity-stepper
+                    [label]="'Quantity for ' + item.productName"
+                    [value]="item.quantity"
+                    [disabled]="busy().has(item.productId)"
+                    (valueChange)="updateQuantity(item, $event)" />
 
+                  <button type="button"
+                          class="link-btn"
+                          [disabled]="busy().has(item.productId)"
+                          [attr.aria-label]="'Remove ' + item.productName + ' from cart'"
+                          (click)="removeItem(item)">
+                    Remove
+                  </button>
+                </div>
+              </div>
 
-      <span>
-        {{ item.quantity }}
-      </span>
+              <p class="item__total">{{ lineTotal(item) | currency: 'INR' : 'symbol' : '1.0-2' }}</p>
+            </li>
+          }
+        </ul>
 
+        <button type="button" class="link-btn clear" (click)="clearOpen.set(true)">Clear cart</button>
+      </section>
 
-      <button (click)="updateQuantity(
-              item.productId,
-              item.quantity + 1
-            )">
+      <aside class="summary" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="summary__title">Order summary</h2>
 
-        +
+        <dl class="summary__rows">
+          <div class="summary__row">
+            <dt>Items</dt>
+            <dd>{{ itemCount() }}</dd>
+          </div>
+          <div class="summary__row summary__row--total">
+            <dt>Total</dt>
+            <dd>{{ cart()!.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}</dd>
+          </div>
+        </dl>
 
-      </button>
+        <p class="summary__note">The final total is confirmed by the store when you place your order.</p>
 
+        <a class="btn btn--primary summary__cta" routerLink="/checkout">Proceed to checkout</a>
+        <a class="summary__continue" routerLink="/products">Continue shopping</a>
+      </aside>
     </div>
-
-
-    <div class="item-total">
-
-      <strong>
-        ₹{{ item.totalPrice }}
-      </strong>
-
-    </div>
-
-
-    <button class="remove-button"
-            (click)="removeItem(item.productId)">
-
-      Remove
-
-    </button>
-
-  </div>
-
   }
-
-
-  <div class="cart-summary">
-
-    <h3>
-      Total:
-      ₹{{ cart()!.totalAmount }}
-    </h3>
-
-
-    <button class="clear-button"
-            (click)="clearCart()">
-
-      Clear Cart
-
-    </button>
-
-    <button class="checkout-button"
-            (click)="checkout()">
-
-      Checkout
-
-    </button>
-
-  </div>
-
 </div>
 
-}
+<app-dialog heading="Clear your cart?" [(open)]="clearOpen">
+  <p>This removes all {{ itemCount() }} items from your cart.</p>
+
+  <ng-container dialog-footer>
+    <button app-button type="button" variant="outline" (click)="clearOpen.set(false)">Keep items</button>
+    <button app-button type="button" [loading]="clearing()" (click)="clearCart()">Clear cart</button>
+  </ng-container>
+</app-dialog>

@@ -1,156 +1,237 @@
-import {
-  Component,
-  OnInit,
-  signal
-} from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, forkJoin, map, Observable, of, switchMap, tap } from 'rxjs';
 
-import {
-  ActivatedRoute,
-  Router,
-  RouterLink
-} from '@angular/router';
-
-import { ProductService } from '../../core/services/product';
-import { CartService } from '../../core/services/cart';
 import { AuthService } from '../../auth/auth';
-
+import { CartActions } from '../../core/services/cart-actions';
+import { CartService } from '../../core/services/cart';
+import { InventoryService } from '../../core/services/inventory';
+import { ProductService } from '../../core/services/product';
+import { Inventory } from '../../shared/models/inventory.model';
 import { Product } from '../../shared/models/product.model';
+import { Alert } from '../../shared/ui/alert/alert';
+import { Badge } from '../../shared/ui/badge/badge';
+import { Breadcrumbs, Crumb } from '../../shared/ui/breadcrumbs/breadcrumbs';
+import { Button } from '../../shared/ui/button/button';
+import { Dialog } from '../../shared/ui/dialog/dialog';
+import { ProductCard } from '../../shared/ui/product-card/product-card';
+import { QuantityStepper } from '../../shared/ui/quantity-stepper/quantity-stepper';
+import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { ToastService } from '../../shared/ui/toast/toast.service';
+import { productImageUrl } from '../../shared/utils/product-image';
+
+const RELATED_COUNT = 4;
+
+interface ProductExtras {
+  inventory: Inventory | null;
+  related: Product[];
+}
 
 @Component({
   selector: 'app-product-details',
-
   imports: [
-    RouterLink
+    RouterLink,
+    CurrencyPipe,
+    Alert,
+    Badge,
+    Breadcrumbs,
+    Button,
+    Dialog,
+    ProductCard,
+    QuantityStepper,
+    Skeleton
   ],
-
   templateUrl: './product-details.html',
-
   styleUrl: './product-details.css'
 })
-export class ProductDetails implements OnInit {
+export class ProductDetails {
 
-  product = signal<Product | null>(null);
+  private readonly route = inject(ActivatedRoute);
 
-  loading = signal(true);
+  private readonly router = inject(Router);
 
-  errorMessage = signal('');
+  private readonly productService = inject(ProductService);
 
-  cartMessage = signal('');
+  private readonly inventoryService = inject(InventoryService);
 
+  private readonly cartService = inject(CartService);
 
-  constructor(
-    private route: ActivatedRoute,
+  protected readonly authService = inject(AuthService);
 
-    private router: Router,
+  private readonly toast = inject(ToastService);
 
-    private productService: ProductService,
+  private readonly title = inject(Title);
 
-    private cartService: CartService,
+  protected readonly cartActions = inject(CartActions);
 
-    private authService: AuthService
-  ) { }
+  protected readonly product = signal<Product | null>(null);
 
+  protected readonly inventory = signal<Inventory | null>(null);
 
-  ngOnInit(): void {
+  protected readonly related = signal<Product[]>([]);
 
-    const id = Number(
-      this.route.snapshot.paramMap.get('id')
-    );
+  protected readonly loading = signal(true);
 
+  protected readonly errorMessage = signal('');
 
-    this.productService
-      .getProductById(id)
-      .subscribe({
+  protected readonly quantity = signal(1);
 
-        next: (data) => {
+  protected readonly adding = signal(false);
 
-          console.log(
-            'Product:',
-            data
-          );
+  protected readonly zoomOpen = signal(false);
 
-          this.product.set(data);
+  protected readonly imageFailed = signal(false);
 
-          this.loading.set(false);
+  protected readonly image = computed(() => {
 
-        },
+    const product = this.product();
 
-        error: (error) => {
+    return product && !this.imageFailed() ? productImageUrl(product, 800) : '';
+  });
 
-          console.error(
-            'Error loading product:',
-            error
-          );
+  private readonly productId = toSignal(
+    this.route.paramMap.pipe(map(params => Number(params.get('id')))),
+    { initialValue: Number(this.route.snapshot.paramMap.get('id')) }
+  );
 
-          this.errorMessage.set(
-            'Unable to load product details.'
-          );
+  protected readonly total = computed(() => (this.product()?.price ?? 0) * this.quantity());
 
-          this.loading.set(false);
+  // Stock is only known for signed-in users; never guessed otherwise.
+  protected readonly maxQuantity = computed(() => {
 
-        }
+    const stock = this.inventory()?.stockQuantity;
 
-      });
+    return typeof stock === 'number' && stock > 0 ? stock : null;
+  });
+
+  protected readonly outOfStock = computed(() => {
+
+    const stock = this.inventory()?.stockQuantity;
+
+    return typeof stock === 'number' && stock <= 0;
+  });
+
+  protected readonly crumbs = computed<Crumb[]>(() => {
+
+    const product = this.product();
+    const items: Crumb[] = [
+      { label: 'Home', link: ['/home'] },
+      { label: 'Products', link: ['/products'] }
+    ];
+
+    if (product?.categoryName) {
+      items.push({ label: product.categoryName, link: ['/products'], queryParams: { category: product.categoryName } });
+    }
+
+    items.push({ label: product?.name ?? '' });
+
+    return items;
+  });
+
+  constructor() {
+
+    toObservable(this.productId).pipe(
+      tap(() => this.resetState()),
+      switchMap(id => this.load(id)),
+      takeUntilDestroyed()
+    ).subscribe(extras => {
+
+      if (extras) {
+        this.applyExtras(extras);
+      }
+    });
   }
 
+  protected addToCart(): void {
 
-  addToCart(): void {
+    const product = this.product();
 
-    const currentProduct =
-      this.product();
-
-
-    if (!currentProduct) {
+    if (!product || this.adding() || this.outOfStock()) {
       return;
     }
 
-
-    // Check whether user is logged in
     if (!this.authService.isLoggedIn()) {
-
       this.router.navigate(['/login']);
-
       return;
     }
 
+    this.adding.set(true);
 
-    this.cartMessage.set('');
+    this.cartService.addToCart(product.id, this.quantity()).subscribe({
+      next: () => {
+        this.adding.set(false);
+        this.toast.success(`${product.name} added to your cart.`);
+      },
+      error: (error) => {
+        this.adding.set(false);
+        this.toast.error(error.error?.message ?? 'Unable to add this item to your cart.');
+      }
+    });
+  }
 
+  private resetState(): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
+    this.product.set(null);
+    this.inventory.set(null);
+    this.related.set([]);
+    this.quantity.set(1);
+    this.imageFailed.set(false);
+    this.zoomOpen.set(false);
+  }
 
-    this.cartService
-      .addToCart(
-        currentProduct.id,
-        1
-      )
-      .subscribe({
+  // Shows the product as soon as it loads; stock and related items follow.
+  private load(id: number): Observable<ProductExtras | null> {
 
-        next: (cart) => {
+    return this.productService.getProductById(id).pipe(
+      tap(product => {
+        this.product.set(product);
+        this.loading.set(false);
+        this.title.setTitle(`${product.name} | Verdant`);
+      }),
+      switchMap(product => forkJoin({
+        inventory: this.loadInventory(product),
+        related: this.loadRelated(product)
+      })),
+      catchError(error => {
+        this.errorMessage.set(error.status === 404 ? 'This product could not be found.' : 'Unable to load product details.');
+        this.loading.set(false);
+        return of(null);
+      })
+    );
+  }
 
-          console.log(
-            'Cart:',
-            cart
-          );
+  private loadInventory(product: Product): Observable<Inventory | null> {
 
-          this.cartMessage.set(
-            'Product added to cart successfully!'
-          );
+    return this.authService.isLoggedIn()
+      ? this.inventoryService.getInventory(product.id).pipe(catchError(() => of(null)))
+      : of(null);
+  }
 
-        },
+  private loadRelated(product: Product): Observable<Product[]> {
 
-        error: (error) => {
+    return this.productService.searchProducts({
+      category: product.categoryName || undefined,
+      categoryId: product.categoryId,
+      pageSize: RELATED_COUNT + 1
+    }).pipe(
+      map(result => result.items.filter(item => item.id !== product.id).slice(0, RELATED_COUNT)),
+      catchError(() => of<Product[]>([]))
+    );
+  }
 
-          console.error(
-            'Error adding product to cart:',
-            error
-          );
+  private applyExtras(extras: ProductExtras): void {
 
-          this.cartMessage.set(
-            error.error?.message ??
-            'Unable to add product to cart.'
-          );
+    this.inventory.set(extras.inventory);
+    this.related.set(extras.related);
 
-        }
+    const stock = extras.inventory?.stockQuantity;
 
-      });
+    if (typeof stock === 'number' && stock > 0 && this.quantity() > stock) {
+      this.quantity.set(stock);
+    }
   }
 }

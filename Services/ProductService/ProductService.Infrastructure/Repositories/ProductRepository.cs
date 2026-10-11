@@ -20,7 +20,9 @@ namespace ProductService.Infrastructure.Repositories
             return await _context.Products
                 .AsNoTracking()
                 .Include(x => x.Category)
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.IsActive);
         }
 
         public async Task<List<Product>> GetByIdsAsync(List<int> ids)
@@ -42,6 +44,7 @@ namespace ProductService.Infrastructure.Repositories
             var query = _context.Products
                 .AsNoTracking()
                 .Include(x => x.Category)
+                .Where(x => x.IsActive)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -107,6 +110,7 @@ namespace ProductService.Infrastructure.Repositories
             var query = _context.Products
                 .AsNoTracking()
                 .Include(x => x.Category)
+                .Where(x => x.IsActive)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -169,6 +173,12 @@ namespace ProductService.Infrastructure.Repositories
         public async Task AddAsync(Product product)
         {
             await _context.Products.AddAsync(product);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddRangeAsync(List<Product> products)
+        {
+            await _context.Products.AddRangeAsync(products);
             await _context.SaveChangesAsync();
         }
 

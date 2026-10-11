@@ -5,7 +5,8 @@ namespace PaymentService.Application.Interfaces;
 
 public interface IPaymentService
 {
-    Task<PaymentResponse> CreatePaymentAsync(CreatePaymentRequest request);
+    // The amount is read from the order, never from the caller.
+    Task<PaymentResponse> ProcessPaymentAsync(int userId, int orderId, string paymentMethod);
 
     Task<PaymentResponse?> GetPaymentByIdAsync(int id);
 

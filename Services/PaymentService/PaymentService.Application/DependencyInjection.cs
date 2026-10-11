@@ -11,6 +11,9 @@ public static class DependencyInjection
     {
         services.AddScoped<IPaymentService, Services.PaymentService>();
 
+        // Swap for a real provider implementation in production.
+        services.AddSingleton<IPaymentGateway, MockPaymentGateway>();
+
         return services;
     }
 }

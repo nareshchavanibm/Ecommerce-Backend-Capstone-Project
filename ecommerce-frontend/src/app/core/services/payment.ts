@@ -21,7 +21,7 @@ export class PaymentService {
   ) { }
 
   processPayment(
-    orderId: number,
+    orderNumber: string,
     paymentMethod: string
   ): Observable<Payment> {
 
@@ -30,7 +30,7 @@ export class PaymentService {
     };
 
     return this.http.post<Payment>(
-      `${this.apiUrl}/orders/${orderId}`,
+      `${this.apiUrl}/orders/${orderNumber}`,
       request
     );
   }
@@ -45,11 +45,11 @@ export class PaymentService {
   }
 
   getPaymentByOrderId(
-    orderId: number
+    orderNumber: string
   ): Observable<Payment> {
 
     return this.http.get<Payment>(
-      `${this.apiUrl}/order/${orderId}`
+      `${this.apiUrl}/order/${orderNumber}`
     );
   }
 }

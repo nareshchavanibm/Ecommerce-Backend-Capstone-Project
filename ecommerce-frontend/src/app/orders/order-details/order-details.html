@@ -1,141 +1,110 @@
-@if (loading()) {
+<div class="page container">
 
-<div class="order-details-container">
-  <p>Loading order...</p>
-</div>
+  <app-breadcrumbs [items]="crumbs()" />
 
-} @else if (errorMessage()) {
-
-<div class="order-details-container">
-
-  <p>
-    {{ errorMessage() }}
-  </p>
-
-  <a routerLink="/orders">
-    Back to My Orders
-  </a>
-
-</div>
-
-} @else if (order()) {
-
-<div class="order-details-container">
-
-  <div class="order-header">
-
-    <div>
-
-      <h2>
-        Order #{{ order()!.id }}
-      </h2>
-
-      <p>
-        Order Date:
-        {{ order()!.orderDate | date }}
-      </p>
-
+  @if (loading()) {
+    <div class="skeletons" aria-busy="true" aria-label="Loading order">
+      <app-skeleton width="40%" height="2rem" />
+      <app-skeleton shape="block" height="72px" />
+      <app-skeleton shape="block" height="220px" />
     </div>
-
-    <div class="order-status">
-
-      <strong>
-        {{ order()!.status }}
-      </strong>
-
+  } @else if (errorMessage()) {
+    <div class="state">
+      <app-alert variant="error">{{ errorMessage() }}</app-alert>
+      <div class="state__actions">
+        <button app-button type="button" (click)="load()">Try again</button>
+        <a class="btn btn--outline" routerLink="/orders">Back to my orders</a>
+      </div>
     </div>
+  } @else if (order(); as order) {
 
-  </div>
-
-
-  <div class="order-items">
-
-    <h3>
-      Order Items
-    </h3>
-
-    @for (
-    item of order()!.items;
-    track item.productId
-    ) {
-
-    <div class="order-item">
-
+    <header class="head">
       <div>
-
-        <h4>
-          {{ item.productName }}
-        </h4>
-
-        <p>
-          Price:
-          ₹{{ item.price }}
-        </p>
-
-        <p>
-          Quantity:
-          {{ item.quantity }}
-        </p>
-
+        <h1 class="head__title">Order {{ order.orderNumber }}</h1>
+        <p class="head__text">Placed on {{ order.orderDate | date: 'medium' }}</p>
       </div>
 
-      <div>
+      <app-badge [variant]="badgeVariant()">{{ order.status }}</app-badge>
+    </header>
 
-        <strong>
-          ₹{{ item.price * item.quantity }}
-        </strong>
-
-      </div>
-
-    </div>
-
+    @if (cancelled()) {
+      <app-alert variant="error">This order was cancelled.</app-alert>
+    } @else {
+      <ol class="progress" aria-label="Order progress">
+        @for (step of steps(); track step.label) {
+          <li class="progress__step" [attr.data-state]="step.state" [attr.aria-current]="step.state === 'current' ? 'step' : null">
+            <span class="progress__dot" aria-hidden="true"></span>
+            <span class="progress__label">{{ step.label }}</span>
+          </li>
+        }
+      </ol>
     }
 
-  </div>
+    <div class="layout">
 
+      <section class="card" aria-labelledby="items-title">
+        <h2 id="items-title" class="card__title">Items</h2>
 
-  <div class="order-summary">
+        <ul class="items">
+          @for (item of order.items; track item.productId) {
+            <li class="item">
+              <a class="item__name" [routerLink]="['/products', item.productId]">{{ item.productName }}</a>
+              <span class="item__meta">{{ unitPrice(item) | currency: 'INR' : 'symbol' : '1.0-2' }} &times; {{ item.quantity }}</span>
+              <span class="item__total">{{ lineTotal(item) | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+            </li>
+          }
+        </ul>
 
-    <h3>
-      Total:
-      ₹{{ order()!.totalAmount }}
-    </h3>
+        <p class="total">
+          <span>Total</span>
+          <span>{{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+        </p>
+      </section>
 
-  </div>
+      <aside class="card" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="card__title">Order summary</h2>
 
+        <dl class="details">
+          <div class="details__row">
+            <dt>Order number</dt>
+            <dd>{{ order.orderNumber }}</dd>
+          </div>
+          <div class="details__row">
+            <dt>Placed on</dt>
+            <dd>{{ order.orderDate | date: 'medium' }}</dd>
+          </div>
+          @if (payment(); as p) {
+            <div class="details__row">
+              <dt>Payment</dt>
+              <dd>{{ p.paymentMethod }} &middot; {{ p.status }}</dd>
+            </div>
+            @if (p.transactionId) {
+              <div class="details__row">
+                <dt>Transaction</dt>
+                <dd class="details__mono">{{ p.transactionId }}</dd>
+              </div>
+            }
+          }
+        </dl>
 
-  @if (cancelMessage()) {
+        <div class="actions">
+          @if (canCancel()) {
+            <p class="hint">This order is still pending. You can cancel it until it is confirmed.</p>
+            <button app-button type="button" variant="outline" (click)="cancelOpen.set(true)">Cancel order</button>
+          }
 
-  <p class="message">
-    {{ cancelMessage() }}
-  </p>
-
+          <a class="btn btn--outline" routerLink="/orders">Back to my orders</a>
+        </div>
+      </aside>
+    </div>
   }
-
-
-  <div class="actions">
-
-    @if (order()!.status !== 'Cancelled') {
-
-    <button type="button"
-            class="cancel-button"
-            (click)="cancelOrder()">
-
-      Cancel Order
-
-    </button>
-
-    }
-
-    <a routerLink="/orders"
-       class="back-button">
-
-      Back to My Orders
-
-    </a>
-
-  </div>
-
 </div>
 
-}
+<app-dialog heading="Cancel this order?" [(open)]="cancelOpen">
+  <p>Order {{ order()?.orderNumber }} will be cancelled. This cannot be undone.</p>
+
+  <ng-container dialog-footer>
+    <button app-button type="button" variant="outline" (click)="cancelOpen.set(false)">Keep order</button>
+    <button app-button type="button" [loading]="cancelling()" (click)="confirmCancel()">Cancel order</button>
+  </ng-container>
+</app-dialog>

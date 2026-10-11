@@ -11,4 +11,6 @@ public interface IPaymentRepository
     Task<IEnumerable<Payment>> GetByOrderIdAsync(int orderId);
 
     Task<Payment?> UpdateStatusAsync(int id, PaymentStatus status);
+
+    Task UpdateAsync(Payment payment);
 }

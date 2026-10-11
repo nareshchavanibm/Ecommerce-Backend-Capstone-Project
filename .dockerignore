@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+ecommerce-frontend/node_modules/
+ecommerce-frontend/dist/
+.vs/
+.git/
+.github/
+*.user
+*.suo

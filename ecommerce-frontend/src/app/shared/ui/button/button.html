@@ -1,0 +1,12 @@
+<span class="btn__label"><ng-content /></span>
+
+@if (loading()) {
+  <svg class="btn__spinner" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="2" />
+    <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke="currentColor" stroke-width="2" />
+  </svg>
+} @else if (arrow()) {
+  <svg class="btn__icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+    <path d="M1 8h13M9 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" />
+  </svg>
+}

@@ -37,5 +37,10 @@ namespace UserService.Infrastructure.Repositories
             return await _context.Users
                 .AnyAsync(x => x.Email == email);
         }
+
+        public async Task SaveAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -6,8 +6,7 @@ import { environment } from '../../../environments/environment';
 
 import {
   Inventory,
-  AddStock,
-  RemoveStock
+  InventoryUpdate
 } from '../../shared/models/inventory.model';
 
 @Injectable({
@@ -20,6 +19,13 @@ export class InventoryService {
 
   constructor(private http: HttpClient) { }
 
+  getAllInventory(): Observable<Inventory[]> {
+
+    return this.http.get<Inventory[]>(
+      this.apiUrl
+    );
+  }
+
   getInventory(
     productId: number
   ): Observable<Inventory> {
@@ -29,24 +35,26 @@ export class InventoryService {
     );
   }
 
-  addStock(
+  // First stock record for a product.
+  createInventory(
     productId: number,
-    request: AddStock
-  ): Observable<void> {
+    request: InventoryUpdate
+  ): Observable<Inventory> {
 
-    return this.http.post<void>(
-      `${this.apiUrl}/${productId}/add`,
+    return this.http.post<Inventory>(
+      `${this.apiUrl}/${productId}`,
       request
     );
   }
 
-  removeStock(
+  // Sets the stock and reorder level of an existing record.
+  updateInventory(
     productId: number,
-    request: RemoveStock
-  ): Observable<void> {
+    request: InventoryUpdate
+  ): Observable<Inventory> {
 
-    return this.http.post<void>(
-      `${this.apiUrl}/${productId}/remove`,
+    return this.http.put<Inventory>(
+      `${this.apiUrl}/${productId}`,
       request
     );
   }

@@ -1,0 +1,71 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  cursor: pointer;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+}
+
+:host(.btn--full) {
+  display: flex;
+  width: 100%;
+}
+
+:host([data-variant='primary']:hover:not(:disabled)) {
+  background: var(--color-primary-hover);
+}
+
+:host([data-variant='primary']:active:not(:disabled)) {
+  background: var(--color-primary-active);
+}
+
+:host([data-variant='outline']) {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+:host([data-variant='outline']:hover:not(:disabled)) {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-primary);
+}
+
+:host([data-variant='ghost']) {
+  background: transparent;
+  color: var(--color-primary);
+}
+
+:host([data-variant='ghost']:hover:not(:disabled)) {
+  background: var(--color-accent);
+}
+
+:host(:disabled) {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-disabled);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+:host([aria-busy='true']) {
+  cursor: progress;
+}
+
+.btn__spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

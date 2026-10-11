@@ -1,125 +1,125 @@
-.import-container {
-  width: 600px;
-  max-width: 90%;
-  margin: 40px auto;
+﻿@import '../../admin-shared.css';
+
+.format {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-block: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-lg);
 }
 
-  .import-container h2 {
-    text-align: center;
-    margin-bottom: 10px;
-  }
-
-  .import-container > p {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-
-.upload-section {
-  margin-bottom: 20px;
+.format__title {
+  margin: 0;
+  font-size: var(--text-base);
 }
 
-  .upload-section label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-
-  .upload-section input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 10px;
-    border: 1px solid #000000;
-  }
-
-.selected-file {
-  margin: 20px 0;
-  padding: 12px;
-  border: 1px solid #000000;
+.format__text {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
-.buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 25px;
-}
-
-  .buttons button {
-    padding: 10px 20px;
-    border: 1px solid #000000;
-    border-radius: 4px;
-    background: #000000;
-    color: #ffffff;
-    cursor: pointer;
-  }
-
-    .buttons button:hover {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    .buttons button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-.error-message {
-  font-weight: bold;
-}
-
-.success-section {
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #000000;
-}
-
-.success-message {
-  font-weight: bold;
-}
-
-.status-check-section {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #000000;
-}
-
-.status-check-section h3 {
-  margin-bottom: 12px;
-}
-
-.status-check-section label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.status-check-section input {
+.columns {
+  display: grid;
+  gap: var(--space-2);
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px;
-  border: 1px solid #000000;
-  margin-bottom: 10px;
+  margin: 0;
 }
 
-.status-check-section button {
-  padding: 10px 20px;
-  border: 1px solid #000000;
-  border-radius: 4px;
-  background: #000000;
-  color: #ffffff;
+.columns__row {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.columns dt {
+  font-weight: var(--weight-semibold);
+}
+
+.columns dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.columns__or {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.field__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.field__input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+}
+
+.field__input:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.field__input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.field__hint,
+.field__error {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.field__hint {
+  color: var(--color-text-muted);
+}
+
+.field__error {
+  color: var(--color-danger);
+}
+
+.issues {
+  margin-block: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.issues summary {
   cursor: pointer;
+  font-weight: var(--weight-semibold);
 }
 
-.status-check-section button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.issues__list {
+  max-height: 240px;
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  overflow-y: auto;
+  color: var(--color-text-muted);
 }
 
-.status-result {
-  margin-top: 15px;
-  padding: 12px;
-  border: 1px solid #000000;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
-.status-result p {
-  margin: 6px 0;
+@media (min-width: 672px) {
+  .columns__row {
+    grid-template-columns: 220px 1fr;
+    gap: var(--space-4);
+  }
 }

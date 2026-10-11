@@ -1,0 +1,101 @@
+:root {
+  /* Brand */
+  --color-primary: #064b35;
+  --color-primary-hover: #043b2a;
+  --color-primary-active: #032d20;
+  --color-on-primary: #ffffff;
+  --color-accent: #e5f2e9;
+  --color-accent-strong: #c9e4d1;
+
+  /* Surfaces */
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f5f6f5;
+  --color-border: #e4e8e4;
+  --color-border-strong: #b9c2bb;
+
+  /* Text (all pass AA on --color-bg) */
+  --color-text: #151b18;
+  --color-text-muted: #5b665f;
+  --color-text-disabled: #8c968f;
+
+  /* Status */
+  --color-danger: #b42318;
+  --color-danger-bg: #fef3f2;
+  --color-success: #067647;
+  --color-success-bg: #ecfdf3;
+  --color-info: #175cd3;
+  --color-info-bg: #eff8ff;
+  --color-warning: #b54708;
+  --color-warning-bg: #fffaeb;
+  --color-rating: #f5a524;
+
+  /* Typography */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-body: 1.55;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(21 27 24 / 6%);
+  --shadow-md: 0 4px 12px rgb(21 27 24 / 8%);
+  --shadow-lg: 0 12px 32px rgb(21 27 24 / 12%);
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px #ffffff, 0 0 0 5px var(--color-primary);
+
+  /* Layout */
+  --container-max: 1312px;
+  --container-pad: var(--space-4);
+  --control-height: 44px;
+  --header-height: 64px;
+
+  /* Motion */
+  --transition: 150ms ease;
+}
+
+/* Mobile-first breakpoints: 672 / 1056 / 1312 */
+@media (min-width: 672px) {
+  :root {
+    --container-pad: var(--space-6);
+  }
+}
+
+@media (min-width: 1056px) {
+  :root {
+    --container-pad: var(--space-8);
+  }
+}

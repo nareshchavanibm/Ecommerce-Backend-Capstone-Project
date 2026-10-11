@@ -4,7 +4,7 @@ export interface CreatePayment {
 
 export interface Payment {
   id: number;
-  orderId: number;
+  orderNumber: string;
   amount: number;
   paymentMethod: string;
   status: string;

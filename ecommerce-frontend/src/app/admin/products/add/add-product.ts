@@ -20,8 +20,11 @@ export class AddProduct implements OnInit {
     description: '',
     price: 0,
     categoryId: 0,
-    initialStock: 0
+    initialStock: 0,
+    imageUrl: ''
   };
+
+  imageFailed = false;
 
   categories: Category[] = [];
 
@@ -82,7 +85,9 @@ export class AddProduct implements OnInit {
 
     this.loading = true;
 
-    this.productService.createProduct(this.product).subscribe({
+    const imageUrl = this.product.imageUrl?.trim();
+
+    this.productService.createProduct({ ...this.product, imageUrl: imageUrl || null }).subscribe({
       next: () => {
         this.loading = false;
         this.successMessage = 'Product created successfully.';

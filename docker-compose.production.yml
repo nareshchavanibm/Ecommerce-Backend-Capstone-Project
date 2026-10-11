@@ -34,6 +34,13 @@ services:
       Jwt__Issuer: "${JWT_ISSUER}"
       Jwt__Audience: "${JWT_AUDIENCE}"
 
+  chatservice:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
   apigateway:
     environment:
       ASPNETCORE_ENVIRONMENT: Production

@@ -1,0 +1,98 @@
+<div class="import-container">
+
+  <h2>Bulk Product Update</h2>
+
+  <p>
+    Upload a CSV or JSON file to update many existing products.
+    Only the columns you fill in are changed.
+  </p>
+
+  <p class="hint">
+    Columns: <strong>Id</strong> (required), Name, Description, Price,
+    CategoryId, CategoryName, ImageUrl. Up to 1000 rows; to use an Excel
+    sheet, save it as CSV first.
+  </p>
+
+  <div class="upload-section">
+
+    <label for="updateFile">
+      Select File
+    </label>
+
+    <input id="updateFile"
+           type="file"
+           accept=".csv,.json"
+           (change)="onFileSelected($event)" />
+
+  </div>
+
+  @if (fileName()) {
+
+  <div class="selected-file">
+    <strong>{{ fileName() }}</strong>:
+    {{ items().length }} products ready to update
+    @if (rowErrors().length) {
+    , {{ rowErrors().length }} rows skipped
+    }
+  </div>
+
+  }
+
+  @if (rowErrors().length) {
+
+  <ul class="error-message row-errors">
+    @for (detail of rowErrors(); track $index) {
+    <li>{{ detail }}</li>
+    }
+  </ul>
+
+  }
+
+  @if (errorMessage()) {
+
+  <p class="error-message">
+    {{ errorMessage() }}
+  </p>
+
+  }
+
+  @if (successMessage()) {
+
+  <div class="success-section">
+
+    <p class="success-message">
+      {{ successMessage() }}
+    </p>
+
+    @if (missingIds().length) {
+
+    <p class="error-message">
+      No product found for Id: {{ missingIds().join(', ') }}
+    </p>
+
+    }
+
+  </div>
+
+  }
+
+  <div class="buttons">
+
+    <button type="button"
+            (click)="updateProducts()"
+            [disabled]="items().length === 0 || loading()">
+
+      {{ loading() ? 'Updating...' : 'Update Products' }}
+
+    </button>
+
+    <button type="button"
+            (click)="backToProducts()">
+
+      Back to Products
+
+    </button>
+
+  </div>
+
+</div>

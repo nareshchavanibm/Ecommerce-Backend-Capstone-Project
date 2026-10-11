@@ -4,129 +4,93 @@
 
     <div>
       <h2>Inventory Management</h2>
-      <p>Manage product stock levels.</p>
+      <p>Set stock levels for each product.</p>
     </div>
 
-    <button type="button"
-            (click)="loadInventory()">
-      Refresh
-    </button>
+    <button app-button type="button" variant="outline" [loading]="loading()" (click)="load()">Refresh</button>
 
   </div>
 
+  @if (errorMessage()) {
+    <app-alert variant="error">{{ errorMessage() }}</app-alert>
+  }
 
   @if (loading()) {
 
-  <p>Loading inventory...</p>
+    <p>Loading inventory...</p>
 
-  }
+  } @else if (rows().length === 0) {
 
+    <p>No products found.</p>
 
-  @if (errorMessage()) {
+  } @else {
 
-  <p class="error-message">
-    {{ errorMessage() }}
-  </p>
+    <table>
 
-  }
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Current stock</th>
+          <th>Reorder level</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
 
+      <tbody>
+        @for (row of pagedRows(); track row.productId) {
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.stock ?? '-' }}</td>
+            <td>{{ row.reorderLevel ?? '-' }}</td>
+            <td>
+              @if (row.stock === null) {
+                <app-badge>No stock record</app-badge>
+              } @else if (row.low) {
+                <app-badge variant="danger">Low stock</app-badge>
+              } @else {
+                <app-badge variant="success">In stock</app-badge>
+              }
+            </td>
+            <td>
+              <button type="button" (click)="openDialog(row)">
+                {{ row.stock === null ? 'Set stock' : 'Update stock' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
 
-  @if (
-  !loading() &&
-  inventories().length === 0
-  ) {
+    </table>
 
-  <p>No inventory records found.</p>
-
-  }
-
-
-  @if (
-  !loading() &&
-  inventories().length > 0
-  ) {
-
-  <table>
-
-    <thead>
-
-      <tr>
-        <th>Product</th>
-        <th>Current Stock</th>
-        <th>Reorder Level</th>
-        <th>Stock Status</th>
-        <th>Actions</th>
-      </tr>
-
-    </thead>
-
-    <tbody>
-
-      @for (
-      inventory of pagedInventories();
-      track inventory.productId
-      ) {
-
-      <tr>
-
-        <td>
-          {{ inventory.productName }}
-        </td>
-
-        <td>
-          {{ inventory.stockQuantity }}
-        </td>
-
-        <td>
-          {{ inventory.reorderLevel }}
-        </td>
-
-        <td>
-
-          @if (inventory.isLowStock) {
-
-          <strong>Low Stock</strong>
-
-          } @else {
-
-          <span>Normal</span>
-
-          }
-
-        </td>
-
-        <td>
-
-          <button type="button"
-                  (click)="addStock(inventory.productId)"
-                  [disabled]="
-                  actionProductId() === inventory.productId
-                ">
-
-            Add Stock
-
-          </button>
-
-          <button type="button"
-                  (click)="removeStock(inventory.productId)"
-                  [disabled]="
-                  actionProductId() === inventory.productId
-                ">
-
-            Remove Stock
-
-          </button>
-
-        </td>
-
-      </tr>
-
-      }
-
-    </tbody>
-
-  </table>
+    @if (totalPages() > 1) {
+      <app-pagination class="pager" [page]="page()" [totalPages]="totalPages()" (pageChange)="page.set($event)" />
+    }
 
   }
 
 </div>
+
+<app-dialog [heading]="editing() ? 'Stock for ' + editing()!.name : 'Update stock'" [(open)]="dialogOpen">
+
+  @if (saveError()) {
+    <app-alert variant="error">{{ saveError() }}</app-alert>
+  }
+
+  <form id="stock-form" class="stock-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+    <app-text-input label="Stock quantity" formControlName="quantity" numericOnly [maxlength]="7" required
+                    [errorMessages]="messages.quantity" />
+
+    <app-text-input label="Reorder level" formControlName="reorderLevel" numericOnly [maxlength]="7" required
+                    helperText="A product is marked low stock when its quantity is at or below this number."
+                    [errorMessages]="messages.reorderLevel" />
+
+  </form>
+
+  <div dialog-footer class="dialog-actions">
+    <button app-button type="button" variant="ghost" [disabled]="saving()" (click)="dialogOpen.set(false)">Cancel</button>
+    <button app-button type="submit" form="stock-form" [loading]="saving()">Save</button>
+  </div>
+
+</app-dialog>

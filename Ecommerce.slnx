@@ -1,5 +1,11 @@
 <Solution>
   <Folder Name="/Services/" />
+  <Folder Name="/Services/Services.Tests/">
+    <Project Path="Services/Services.Tests/Services.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Services/ChatService/">
+    <Project Path="Services/ChatService/ChatService.Api/ChatService.Api.csproj" />
+  </Folder>
   <Folder Name="/Services/OrderService/">
     <Project Path="Services/OrderService/OrderService.Api/OrderService.Api.csproj" />
     <Project Path="Services/OrderService/OrderService.Application/OrderService.Application.csproj" />

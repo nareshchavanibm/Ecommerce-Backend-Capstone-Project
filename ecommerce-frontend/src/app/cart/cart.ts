@@ -1,280 +1,236 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
+import { Component, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 
-import { OrderService } from '../core/services/order';
+import { CartActions } from '../core/services/cart-actions';
 import { CartService } from '../core/services/cart';
-import { PaymentService } from '../core/services/payment';
-import { Router} from '@angular/router';
+import { ProductService } from '../core/services/product';
+import { Cart, CartItem } from '../shared/models/cart.model';
+import { Product } from '../shared/models/product.model';
+import { Alert } from '../shared/ui/alert/alert';
+import { Button } from '../shared/ui/button/button';
+import { Dialog } from '../shared/ui/dialog/dialog';
+import { ProductCard } from '../shared/ui/product-card/product-card';
+import { QuantityStepper } from '../shared/ui/quantity-stepper/quantity-stepper';
+import { Skeleton } from '../shared/ui/skeleton/skeleton';
+import { ToastService } from '../shared/ui/toast/toast.service';
 
-import {
-  Cart
-} from '../shared/models/cart.model';
+const SUGGESTION_COUNT = 4;
 
 @Component({
   selector: 'app-cart',
-  imports: [RouterLink],
+  imports: [RouterLink, CurrencyPipe, Alert, Button, Dialog, ProductCard, QuantityStepper, Skeleton],
   templateUrl: './cart.html',
   styleUrl: './cart.css'
 })
 export class CartComponent implements OnInit {
 
-  cart = signal<Cart | null>(null);
+  private readonly cartService = inject(CartService);
 
-  loading = signal(true);
+  private readonly productService = inject(ProductService);
 
-  errorMessage = signal('');
+  private readonly toast = inject(ToastService);
 
-  constructor(
-    private cartService: CartService,
-    private orderService: OrderService,
-    private paymentService: PaymentService,
-    private router: Router
-  ) { }
+  protected readonly cartActions = inject(CartActions);
 
-  ngOnInit(): void {
+  protected readonly cart = signal<Cart | null>(null);
 
-    this.loadCart();
+  protected readonly loading = signal(true);
 
-  }
+  protected readonly errorMessage = signal('');
 
-  loadCart(): void {
+  // Product ids whose quantity change or removal is in flight.
+  protected readonly busy = signal<ReadonlySet<number>>(new Set());
 
-    this.loading.set(true);
+  protected readonly images = signal<Record<number, string>>({});
 
-    this.errorMessage.set('');
+  protected readonly suggestions = signal<Product[]>([]);
 
-    this.cartService.getCart().subscribe({
+  protected readonly clearOpen = signal(false);
 
-      next: (data) => {
+  protected readonly clearing = signal(false);
 
-        console.log('Cart:', data);
+  protected readonly placeholders = [1, 2, 3];
 
-        this.cart.set(data);
+  protected readonly items = computed(() => this.cart()?.items ?? []);
 
-        this.loading.set(false);
+  protected readonly itemCount = computed(() => this.items().reduce((sum, item) => sum + item.quantity, 0));
 
-      },
+  private readonly imagesRequested = new Set<number>();
 
-      error: (error) => {
+  constructor() {
 
-        console.error(
-          'Error loading cart:',
-          error
-        );
-
-        this.errorMessage.set(
-          error.error?.message ||
-          'Unable to load cart.'
-        );
-
-        this.loading.set(false);
-
+    effect(() => {
+      if (this.cartActions.added() > 0) {
+        untracked(() => this.reload());
       }
-
     });
   }
 
-  updateQuantity(
-    productId: number,
-    quantity: number
-  ): void {
+  ngOnInit(): void {
+    this.load();
+  }
 
-    if (quantity < 1) {
+  protected load(): void {
+
+    this.loading.set(true);
+    this.errorMessage.set('');
+
+    this.cartService.getCart().subscribe({
+      next: cart => {
+        this.applyCart(cart);
+        this.loading.set(false);
+      },
+      error: error => {
+        this.errorMessage.set(error.error?.message ?? 'Unable to load your cart.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  protected lineTotal(item: CartItem): number {
+    return item.totalPrice ?? item.price * item.quantity;
+  }
+
+  protected updateQuantity(item: CartItem, quantity: number): void {
+
+    if (quantity < 1 || this.busy().has(item.productId)) {
       return;
     }
 
-    this.cartService
-      .updateCartItem(
-        productId,
-        quantity
-      )
-      .subscribe({
+    this.setBusy(item.productId, true);
 
-        next: (data) => {
-
-          this.cart.set(data);
-
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error updating cart:',
-            error
-          );
-
-        }
-
-      });
+    this.cartService.updateCartItem(item.productId, quantity).pipe(
+      finalize(() => this.setBusy(item.productId, false))
+    ).subscribe({
+      next: cart => this.applyOrReload(cart),
+      error: error => {
+        this.toast.error(error.error?.message ?? 'Could not update the quantity.');
+        this.reload();
+      }
+    });
   }
 
-  removeItem(
-    productId: number
-  ): void {
+  protected removeItem(item: CartItem): void {
 
-    this.cartService
-      .removeCartItem(productId)
-      .subscribe({
-
-        next: (data) => {
-
-          this.cart.set(data);
-
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error removing item:',
-            error
-          );
-
-        }
-
-      });
-  }
-
-
-  clearCart(): void {
-
-    this.cartService
-      .clearCart()
-      .subscribe({
-
-        next: () => {
-
-          this.loadCart();
-
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error clearing cart:',
-            error
-          );
-
-        }
-
-      });
-  }
-
-  checkout(): void {
-
-    const currentCart = this.cart();
-
-    if (
-      !currentCart ||
-      currentCart.items.length === 0
-    ) {
+    if (this.busy().has(item.productId)) {
       return;
     }
 
-    const orderRequest = {
+    this.setBusy(item.productId, true);
 
-      items: currentCart.items.map(item => ({
-
-        productId: item.productId,
-
-        quantity: item.quantity
-
-      }))
-
-    };
-
-    console.log(
-      'Creating order:',
-      orderRequest
-    );
-
-    this.orderService
-      .createOrder(orderRequest)
-      .subscribe({
-
-        next: (order) => {
-
-          console.log(
-            'Order created:',
-            order
-          );
-
-          this.processPayment(order.id);
-
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error creating order:',
-            error
-          );
-
-        }
-
-      });
+    this.cartService.removeCartItem(item.productId).pipe(
+      finalize(() => this.setBusy(item.productId, false))
+    ).subscribe({
+      next: cart => {
+        this.applyOrReload(cart);
+        this.toast.success(`${item.productName} removed from your cart.`);
+      },
+      error: error => {
+        this.toast.error(error.error?.message ?? 'Could not remove this item.');
+        this.reload();
+      }
+    });
   }
-  processPayment(orderId: number): void {
 
-    const paymentMethod = 'Card';
+  protected clearCart(): void {
 
-    this.paymentService
-      .processPayment(
-        orderId,
-        paymentMethod
-      )
-      .subscribe({
+    if (this.clearing()) {
+      return;
+    }
 
-        next: (payment) => {
+    this.clearing.set(true);
 
-          console.log(
-            'Payment successful:',
-            payment
-          );
+    this.cartService.clearCart().pipe(
+      finalize(() => this.clearing.set(false))
+    ).subscribe({
+      next: () => {
+        this.clearOpen.set(false);
+        this.applyCart({ ...(this.cart() as Cart), items: [], totalAmount: 0 });
+      },
+      error: error => {
+        this.clearOpen.set(false);
+        this.toast.error(error.error?.message ?? 'Could not clear your cart.');
+      }
+    });
+  }
 
-          // Payment completed
-          this.cartService
-            .clearCart()
-            .subscribe({
+  private setBusy(productId: number, busy: boolean): void {
 
-              next: () => {
+    this.busy.update(current => {
+      const next = new Set(current);
 
-                // Go to confirmation page
-                this.router.navigate([
-                  '/order-confirmation',
-                  orderId
-                ]);
+      if (busy) {
+        next.add(productId);
+      } else {
+        next.delete(productId);
+      }
 
-              },
+      return next;
+    });
+  }
 
-              error: (error) => {
+  // A response without a cart body (e.g. after DELETE) is refreshed from the server.
+  private applyOrReload(cart: Cart | null | undefined): void {
 
-                console.error(
-                  'Error clearing cart:',
-                  error
-                );
+    if (cart && Array.isArray(cart.items)) {
+      this.applyCart(cart);
+    } else {
+      this.reload();
+    }
+  }
 
-                // Even if clearing the cart fails,
-                // payment was successful.
-                this.router.navigate([
-                  '/order-confirmation',
-                  orderId
-                ]);
+  private reload(): void {
+    this.cartService.getCart().subscribe({ next: cart => this.applyCart(cart), error: () => { } });
+  }
 
-              }
+  private applyCart(cart: Cart): void {
 
-            });
+    this.cart.set(cart);
 
-        },
+    if (cart.items.length === 0) {
+      this.loadSuggestions();
+    } else {
+      this.loadImages(cart.items);
+    }
+  }
 
-        error: (error) => {
+  // The cart API has no image field, so thumbnails come from the product API.
+  private loadImages(items: CartItem[]): void {
 
-          console.error(
-            'Payment failed:',
-            error
-          );
+    const missing = items.filter(item => !this.imagesRequested.has(item.productId));
 
+    if (missing.length === 0) {
+      return;
+    }
+
+    missing.forEach(item => this.imagesRequested.add(item.productId));
+
+    forkJoin(
+      missing.map(item => this.productService.getProductById(item.productId).pipe(catchError(() => of(null))))
+    ).subscribe(products => {
+
+      const found: Record<number, string> = {};
+
+      products.forEach(product => {
+        if (product?.imageUrl) {
+          found[product.id] = product.imageUrl;
         }
-
       });
+
+      this.images.update(current => ({ ...current, ...found }));
+    });
+  }
+
+  private loadSuggestions(): void {
+
+    if (this.suggestions().length > 0) {
+      return;
+    }
+
+    this.productService.searchProducts({ pageSize: SUGGESTION_COUNT }).pipe(
+      catchError(() => of(null))
+    ).subscribe(result => this.suggestions.set(result?.items ?? []));
   }
 }

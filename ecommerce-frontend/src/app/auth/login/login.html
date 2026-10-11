@@ -1,56 +1,45 @@
-<div class="login-container">
+<app-auth-layout headline="WELCOME" subheadline="BACK TO YOUR STORE NAME">
+  <h1 class="auth-form__title">Sign in</h1>
+  <p class="auth-form__subtitle">Welcome back! Enter your details to continue.</p>
 
-  <h2>Login</h2>
-
-  <form (ngSubmit)="login()" #loginForm="ngForm">
-
-    <div>
-      <label>Email</label>
-
-      <input type="email"
-             [(ngModel)]="email"
-             name="email"
-             required />
-    </div>
-
-    <div>
-      <label>Password</label>
-
-      <input type="password"
-             [(ngModel)]="password"
-             name="password"
-             required />
-    </div>
-
-    <button type="submit"
-            [disabled]="loginForm.invalid">
-
-      Login
-
-    </button>
-
-  </form>
-
-
-  @if (errorMessage) {
-
-  <p class="error-message">
-    {{ errorMessage }}
-  </p>
-
+  @if (notice()) {
+    <app-alert variant="success" class="auth-form__alert">{{ notice() }}</app-alert>
   }
 
+  @if (errorMessage()) {
+    <app-alert class="auth-form__alert">{{ errorMessage() }}</app-alert>
+  }
 
-  <div class="signup-link">
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+    <app-text-input
+      label="Email"
+      type="email"
+      icon="mail"
+      formControlName="email"
+      autocomplete="email"
+      placeholder="you@example.com"
+      required
+      [errorMessages]="{ required: 'Enter your email address.' }"
+    />
 
-    <p>
-      Don't have an account?
-    </p>
+    <app-password-input
+      label="Password"
+      formControlName="password"
+      autocomplete="current-password"
+      required
+      [errorMessages]="{ required: 'Enter your password.' }"
+    />
 
-    <a routerLink="/signup">
-      Sign Up
-    </a>
+    <div class="auth-form__row">
+      <app-checkbox formControlName="remember">Remember me</app-checkbox>
+      <a class="auth-link" routerLink="/forgot-password">Forgot password?</a>
+    </div>
 
-  </div>
+    <button app-button type="submit" fullWidth [loading]="loading()">Sign in</button>
+  </form>
 
-</div>
+  <p class="auth-form__footer">
+    Don't have an account?
+    <a class="auth-link" routerLink="/register">Sign up</a>
+  </p>
+</app-auth-layout>

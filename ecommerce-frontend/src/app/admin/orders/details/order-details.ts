@@ -53,14 +53,13 @@ export class AdminOrderDetails implements OnInit {
 
   ngOnInit(): void {
 
-    const orderId = Number(
-      this.route.snapshot.paramMap.get('id')
-    );
+    const orderNumber =
+      this.route.snapshot.paramMap.get('id');
 
-    if (!orderId) {
+    if (!orderNumber) {
 
       this.errorMessage.set(
-        'Invalid order ID.'
+        'Invalid order number.'
       );
 
       this.loading.set(false);
@@ -68,17 +67,17 @@ export class AdminOrderDetails implements OnInit {
       return;
     }
 
-    this.loadOrder(orderId);
+    this.loadOrder(orderNumber);
   }
 
-  loadOrder(orderId: number): void {
+  loadOrder(orderNumber: string): void {
 
     this.loading.set(true);
 
     this.errorMessage.set('');
 
     this.orderService
-      .getOrder(orderId)
+      .getOrder(orderNumber)
       .subscribe({
 
         next: (data) => {
@@ -155,7 +154,7 @@ export class AdminOrderDetails implements OnInit {
 
     this.orderService
       .updateOrderStatus(
-        currentOrder.id,
+        currentOrder.orderNumber,
         { status }
       )
       .subscribe({

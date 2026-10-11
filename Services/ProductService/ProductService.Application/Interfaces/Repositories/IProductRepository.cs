@@ -28,6 +28,8 @@ namespace ProductService.Application.Interfaces.Repositories
 
         Task AddAsync(Product product);
 
+        Task AddRangeAsync(List<Product> products);
+
         Task UpdateAsync(Product product);
 
         Task UpdateRangeAsync(List<Product> products);

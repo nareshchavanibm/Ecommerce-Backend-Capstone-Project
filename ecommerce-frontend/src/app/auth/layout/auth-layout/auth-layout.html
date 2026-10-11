@@ -1,0 +1,23 @@
+<div class="page">
+  <div class="card">
+    <div class="strip">
+      <span class="strip__headline">{{ headline() }}</span>
+      <span class="strip__sub">{{ subheadline() }}</span>
+    </div>
+
+    <app-decorative-panel
+      class="panel"
+      [headline]="headline()"
+      [subheadline]="subheadline()"
+      [message]="message()"
+    />
+
+    <section class="form-side" id="auth-main">
+      <div class="form-wrap">
+        <ng-content />
+      </div>
+
+      <span class="corner" aria-hidden="true"></span>
+    </section>
+  </div>
+</div>

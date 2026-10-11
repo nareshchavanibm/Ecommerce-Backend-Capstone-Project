@@ -1,5 +1,16 @@
-<app-navbar></app-navbar>
+@if (!isAuthRoute()) {
+  <a class="skip-link" href="#main">Skip to content</a>
+  <app-navbar></app-navbar>
+  <app-address-banner></app-address-banner>
+  <app-chat-widget></app-chat-widget>
+}
 
-<h1>E-Commerce Application</h1>
+<main id="main">
+  <router-outlet></router-outlet>
+</main>
 
-<router-outlet></router-outlet>
+@if (isHomeRoute()) {
+  <app-footer></app-footer>
+}
+
+<app-toast-outlet></app-toast-outlet>

@@ -18,6 +18,10 @@ namespace OrderService.Infrastructure.Data
 
         public DbSet<CartItem> CartItems { get; set; }
 
+        public DbSet<Notification> Notifications { get; set; }
+
+        public DbSet<NotificationRead> NotificationReads { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

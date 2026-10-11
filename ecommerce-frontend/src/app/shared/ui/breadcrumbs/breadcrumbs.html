@@ -1,0 +1,16 @@
+<nav aria-label="Breadcrumb">
+  <ol class="crumbs">
+    @for (item of items(); track $index; let last = $last) {
+      <li class="crumbs__item">
+        @if (item.link && !last) {
+          <a class="crumbs__link" [routerLink]="item.link" [queryParams]="item.queryParams">{{ item.label }}</a>
+          <svg class="crumbs__sep" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+            <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        } @else {
+          <span class="crumbs__current" [attr.aria-current]="last ? 'page' : null">{{ item.label }}</span>
+        }
+      </li>
+    }
+  </ol>
+</nav>

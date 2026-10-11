@@ -15,5 +15,9 @@ namespace ProductService.Application.Interfaces.Services
         Task<InventoryResponseDto?> UpdateAsync(
             int productId,
             InventoryUpdateDto request);
+
+        Task<StockReservationResult> ReserveAsync(StockAdjustmentRequest request);
+
+        Task ReleaseAsync(StockAdjustmentRequest request);
     }
 }

@@ -40,7 +40,7 @@
     <thead>
 
       <tr>
-        <th>Order ID</th>
+        <th>Order</th>
         <th>User ID</th>
         <th>Order Date</th>
         <th>Total</th>
@@ -54,13 +54,13 @@
 
       @for (
       order of pagedOrders();
-      track order.id
+      track order.orderNumber
       ) {
 
       <tr>
 
         <td>
-          {{ order.id }}
+          {{ order.orderNumber }}
         </td>
 
         <td>
@@ -82,7 +82,7 @@
         <td>
 
           <button type="button"
-                  (click)="viewOrder(order.id)">
+                  (click)="viewOrder(order.orderNumber)">
 
             View
 

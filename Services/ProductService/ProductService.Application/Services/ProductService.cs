@@ -12,16 +12,24 @@ namespace ProductService.Application.Services
     {
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
+        private readonly IInventoryRepository _inventoryRepository;
         private readonly IDistributedCache _cache;
 
         private const string ProductCacheVersionKey = "products_cache_version";
 
+        // Stock given to imported products whose file has no stock columns.
+        private const int DefaultImportStock = 10;
+        private const int DefaultImportReorderLevel = 2;
+        private const int MaxStockValue = 10_000_000;
+
         public ProductService(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
+            IInventoryRepository inventoryRepository,
             IDistributedCache cache)
         {
             _productRepository = productRepository;
+            _inventoryRepository = inventoryRepository;
             _categoryRepository = categoryRepository;
             _cache = cache;
         }
@@ -308,6 +316,156 @@ namespace ProductService.Application.Services
             }
 
             return updatedProducts;
+        }
+
+        public async Task<ProductImportResult> ImportAsync(
+            List<ProductImportRow> rows)
+        {
+            var result = new ProductImportResult { TotalRows = rows.Count };
+
+            var categories = (await _categoryRepository.GetAllAsync())
+                .GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.First(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            var categoriesById = categories.Values.ToDictionary(x => x.Id);
+            var products = new List<(Product Product, int Quantity, int ReorderLevel)>();
+
+            foreach (var row in rows)
+            {
+                var built = await TryBuildImportProductAsync(
+                    row,
+                    categories,
+                    categoriesById);
+
+                if (built.Error != null)
+                {
+                    result.Errors++;
+                    result.ErrorDetails.Add($"Row {row.RowNumber}: {built.Error}");
+                    continue;
+                }
+
+                products.Add((built.Product!, built.Quantity, built.ReorderLevel));
+            }
+
+            if (products.Count > 0)
+            {
+                await _productRepository.AddRangeAsync(
+                    products.Select(x => x.Product).ToList());
+
+                // Product ids exist once saved, so the stock records follow.
+                await _inventoryRepository.AddRangeAsync(
+                    products.Select(x => new Inventory
+                    {
+                        ProductId = x.Product.Id,
+                        Quantity = x.Quantity,
+                        ReorderLevel = x.ReorderLevel
+                    }).ToList());
+
+                await InvalidateProductCacheAsync();
+            }
+
+            result.Inserted = products.Count;
+
+            return result;
+        }
+
+        private static bool TryParseCount(string? text, int fallback, out int value)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                value = fallback;
+                return true;
+            }
+
+            value = 0;
+
+            if (!decimal.TryParse(
+                    text.Trim(),
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var number)
+                || number < 0
+                || number > MaxStockValue
+                || number != decimal.Truncate(number))
+                return false;
+
+            value = (int)number;
+
+            return true;
+        }
+
+        private async Task<(Product? Product, int Quantity, int ReorderLevel, string? Error)> TryBuildImportProductAsync(
+            ProductImportRow row,
+            Dictionary<string, Category> categories,
+            Dictionary<int, Category> categoriesById)
+        {
+            var name = row.Name?.Trim();
+            var description = row.Description?.Trim() ?? string.Empty;
+            var imageUrl = row.ImageUrl?.Trim();
+
+            if (string.IsNullOrEmpty(name))
+                return (null, 0, 0, "Name is required.");
+
+            if (name.Length > 100)
+                return (null, 0, 0, "Name cannot exceed 100 characters.");
+
+            if (description.Length > 1000)
+                return (null, 0, 0, "Description cannot exceed 1000 characters.");
+
+            if (!decimal.TryParse(
+                    row.Price,
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var price) || price <= 0)
+                return (null, 0, 0, "Price must be a number greater than 0.");
+
+            if (!string.IsNullOrEmpty(imageUrl) && imageUrl.Length > 500)
+                return (null, 0, 0, "ImageUrl cannot exceed 500 characters.");
+
+            if (!TryParseCount(row.StockQuantity, DefaultImportStock, out var quantity))
+                return (null, 0, 0, "StockQuantity must be a whole number, 0 or more.");
+
+            if (!TryParseCount(row.ReorderLevel, DefaultImportReorderLevel, out var reorderLevel))
+                return (null, 0, 0, "ReorderLevel must be a whole number, 0 or more.");
+
+            Category? category;
+            var categoryName = row.CategoryName?.Trim();
+
+            if (!string.IsNullOrEmpty(categoryName))
+            {
+                if (categoryName.Length > 100)
+                    return (null, 0, 0, "CategoryName cannot exceed 100 characters.");
+
+                if (!categories.TryGetValue(categoryName, out category))
+                {
+                    category = new Category { Name = categoryName };
+                    await _categoryRepository.AddAsync(category);
+                    categories[categoryName] = category;
+                    categoriesById[category.Id] = category;
+                }
+            }
+            else if (int.TryParse(row.CategoryId, out var categoryId))
+            {
+                if (!categoriesById.TryGetValue(categoryId, out category))
+                    return (null, 0, 0, $"CategoryId {categoryId} does not exist.");
+            }
+            else
+            {
+                return (null, 0, 0, "CategoryName or a valid CategoryId is required.");
+            }
+
+            return (new Product
+            {
+                Name = name,
+                Description = description,
+                Price = price,
+                ImageUrl = string.IsNullOrEmpty(imageUrl) ? null : imageUrl,
+                CategoryId = category.Id,
+                IsActive = true
+            }, quantity, reorderLevel, null);
         }
 
         public async Task<bool> DeleteAsync(int id)

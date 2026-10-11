@@ -41,6 +41,12 @@ namespace OrderService.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteRangeAsync(IEnumerable<CartItem> cartItems)
+        {
+            _context.CartItems.RemoveRange(cartItems);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task DeleteAsync(CartItem cartItem)
         {
             _context.CartItems.Remove(cartItem);

@@ -22,6 +22,7 @@ namespace UserService.Api.Extensions
 
             // Repositories
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAddressRepository, AddressRepository>();
 
             // Authentication
             services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -29,6 +30,7 @@ namespace UserService.Api.Extensions
 
             // Application services
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IAccountService, AccountService>();
 
             return services;
         }

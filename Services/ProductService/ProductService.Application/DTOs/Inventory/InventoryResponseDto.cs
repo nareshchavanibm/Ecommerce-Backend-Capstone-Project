@@ -10,6 +10,9 @@ namespace ProductService.Application.DTOs.Inventory
 
         public int Quantity { get; set; }
 
+        // Same value as Quantity; the storefront reads this name.
+        public int StockQuantity => Quantity;
+
         public int ReorderLevel { get; set; }
 
         public bool IsLowStock { get; set; }

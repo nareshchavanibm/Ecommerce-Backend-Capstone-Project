@@ -1,0 +1,31 @@
+:host {
+  display: block;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.buttons {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 672px) {
+  .buttons {
+    grid-template-columns: 1fr 1fr;
+  }
+}

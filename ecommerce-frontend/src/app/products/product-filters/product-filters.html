@@ -1,0 +1,75 @@
+<div class="filters">
+
+  @if (loadingCategories()) {
+    <div class="group" aria-hidden="true">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  } @else if (categories().length > 0) {
+    <fieldset class="group">
+      <legend class="group__title">Category</legend>
+
+      <label class="option">
+        <input type="radio" [name]="uid + '-category'" [checked]="!category()" (change)="selectCategory('')" />
+        <span class="option__label">All categories</span>
+      </label>
+
+      @for (item of categories(); track item.id) {
+        <label class="option">
+          <input type="radio" [name]="uid + '-category'" [checked]="category() === item.name" (change)="selectCategory(item.name)" />
+          <span class="option__label">{{ item.name }}</span>
+          <span class="option__count">{{ item.productCount }}</span>
+        </label>
+      }
+    </fieldset>
+  }
+
+  <form class="group" (submit)="applyPrice($event)" novalidate>
+    <fieldset class="price">
+      <legend class="group__title">Price (&#8377;)</legend>
+
+      <div class="price__row">
+        <div class="price__field">
+          <label class="price__label" [for]="uid + '-min'">Min</label>
+          <input class="price__input"
+                 [id]="uid + '-min'"
+                 type="text"
+                 inputmode="decimal"
+                 autocomplete="off"
+                 placeholder="0"
+                 [value]="minText()"
+                 [attr.aria-invalid]="touched() && priceError() ? 'true' : null"
+                 [attr.aria-describedby]="touched() && priceError() ? uid + '-price-error' : null"
+                 (input)="onPriceInput('min', $event)"
+                 (blur)="touched.set(true)" />
+        </div>
+
+        <span class="price__dash" aria-hidden="true">&ndash;</span>
+
+        <div class="price__field">
+          <label class="price__label" [for]="uid + '-max'">Max</label>
+          <input class="price__input"
+                 [id]="uid + '-max'"
+                 type="text"
+                 inputmode="decimal"
+                 autocomplete="off"
+                 placeholder="Any"
+                 [value]="maxText()"
+                 [attr.aria-invalid]="touched() && priceError() ? 'true' : null"
+                 [attr.aria-describedby]="touched() && priceError() ? uid + '-price-error' : null"
+                 (input)="onPriceInput('max', $event)"
+                 (blur)="touched.set(true)" />
+        </div>
+      </div>
+
+      <div aria-live="polite">
+        @if (touched() && priceError()) {
+          <p class="price__error" [id]="uid + '-price-error'">{{ priceError() }}</p>
+        }
+      </div>
+
+      <button type="submit" class="price__apply">Apply price</button>
+    </fieldset>
+  </form>
+</div>

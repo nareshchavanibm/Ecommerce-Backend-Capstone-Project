@@ -1,0 +1,92 @@
+:host {
+  display: block;
+}
+
+/* Pill bar: arrows at the ends, evenly spaced numbers, filled circle for the current page */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-md);
+}
+
+.pager__list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__btn,
+.pager__nav {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.pager__btn {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+}
+
+.pager__btn:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.pager__btn--active,
+.pager__btn--active:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.pager__nav {
+  color: var(--color-text-muted);
+}
+
+.pager__nav:hover:not(:disabled) {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.pager__nav:disabled {
+  background: transparent;
+  color: var(--color-border-strong);
+  cursor: not-allowed;
+}
+
+.pager__gap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  color: var(--color-text-muted);
+}
+
+/* Compact on mobile: only the first, current and last numbers */
+.pager__list li:not(:has(.pager__btn--active)):not(:first-child):not(:last-child) {
+  display: none;
+}
+
+@media (min-width: 672px) {
+  .pager__list li:not(:has(.pager__btn--active)):not(:first-child):not(:last-child) {
+    display: list-item;
+  }
+}

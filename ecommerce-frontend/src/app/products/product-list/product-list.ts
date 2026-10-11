@@ -1,405 +1,276 @@
-import {
-  Component,
-  OnInit,
-  signal
-} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Component, ElementRef, PLATFORM_ID, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { BehaviorSubject, catchError, combineLatest, map, of, switchMap, tap } from 'rxjs';
 
-import {
-  FormsModule
-} from '@angular/forms';
+import { CartActions } from '../../core/services/cart-actions';
+import { CategoryService } from '../../core/services/category';
+import { ProductService } from '../../core/services/product';
+import { Category } from '../../shared/models/category.model';
+import { Product, ProductQuery } from '../../shared/models/product.model';
+import { Alert } from '../../shared/ui/alert/alert';
+import { Dialog } from '../../shared/ui/dialog/dialog';
+import { Pagination } from '../../shared/ui/pagination/pagination';
+import { ProductCard } from '../../shared/ui/product-card/product-card';
+import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { ProductFilterValue, ProductFilters } from '../product-filters/product-filters';
 
-import {
-  RouterLink
-} from '@angular/router';
+const PAGE_SIZE = 12;
 
-import {
-  ProductService
-} from '../../core/services/product';
+interface ListState {
+  search: string;
+  category: string;
+  minPrice?: number;
+  maxPrice?: number;
+  page: number;
+}
 
-import {
-  CategoryService
-} from '../../core/services/category';
-
-import {
-  Product,
-  ProductQuery
-} from '../../shared/models/product.model';
-
-import {
-  Category
-} from '../../shared/models/category.model';
+interface Chip {
+  key: 'search' | 'category' | 'price';
+  label: string;
+}
 
 @Component({
   selector: 'app-product-list',
-
   imports: [
-    RouterLink,
-    FormsModule
+    Alert,
+    Dialog,
+    Pagination,
+    ProductCard,
+    ProductFilters,
+    Skeleton
   ],
-
   templateUrl: './product-list.html',
-
   styleUrl: './product-list.css'
 })
-export class ProductList implements OnInit {
+export class ProductList {
 
-  products = signal<Product[]>([]);
+  private readonly route = inject(ActivatedRoute);
 
-  loading = signal(true);
+  private readonly router = inject(Router);
 
-  errorMessage = signal('');
+  private readonly productService = inject(ProductService);
 
-  search = '';
+  private readonly categoryService = inject(CategoryService);
 
-  categories = signal<Category[]>([]);
+  private readonly title = inject(Title);
 
-  categoryId: number | undefined;
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  minPrice: number | undefined;
+  protected readonly cartActions = inject(CartActions);
 
-  maxPrice: number | undefined;
+  private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
 
-  sortBy = '';
+  protected readonly placeholders = Array.from({ length: 8 }, (_, i) => i);
 
-  sortOrder = '';
+  protected readonly products = signal<Product[]>([]);
 
-  currentPage = signal(1);
+  protected readonly totalCount = signal(0);
 
-  pageSize = signal(10);
+  protected readonly totalPages = signal(1);
 
-  totalPages = signal(1);
+  protected readonly loading = signal(true);
 
-  totalCount = signal(0);
+  protected readonly errorMessage = signal('');
 
+  protected readonly categories = signal<Category[]>([]);
 
-  constructor(
-    private productService: ProductService,
+  protected readonly categoriesLoading = signal(true);
 
-    private categoryService: CategoryService
-  ) { }
+  protected readonly filtersOpen = signal(false);
 
+  private readonly queryParams = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
 
-  ngOnInit(): void {
+  protected readonly state = computed<ListState>(() => this.parse(this.queryParams()));
 
-    // Categories are also public
-    this.loadCategories();
+  private readonly reload = new BehaviorSubject(0);
 
-    // Load products
-    this.searchProducts();
+  private focusAfterLoad = false;
+
+  protected readonly pageHeading = computed(() => {
+
+    const { category, search } = this.state();
+
+    if (category) {
+      return category;
+    }
+
+    return search ? `Results for \u201C${search}\u201D` : 'All products';
+  });
+
+  protected readonly chips = computed<Chip[]>(() => {
+
+    const { search, category, minPrice, maxPrice } = this.state();
+    const chips: Chip[] = [];
+
+    if (search) {
+      chips.push({ key: 'search', label: `Search: ${search}` });
+    }
+
+    if (category) {
+      chips.push({ key: 'category', label: category });
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      const label = minPrice !== undefined && maxPrice !== undefined
+        ? `\u20B9${minPrice} \u2013 \u20B9${maxPrice}`
+        : minPrice !== undefined ? `From \u20B9${minPrice}` : `Up to \u20B9${maxPrice}`;
+
+      chips.push({ key: 'price', label });
+    }
+
+    return chips;
+  });
+
+  // Search is a query, not a filter, so it is not counted on the Filters button.
+  protected readonly filterCount = computed(() => this.chips().filter(chip => chip.key !== 'search').length);
+
+  protected readonly resultText = computed(() => {
+
+    const count = this.totalCount();
+
+    return `${count} ${count === 1 ? 'product' : 'products'}`;
+  });
+
+  constructor() {
+
+    this.categoryService.getCategories().pipe(
+      catchError(() => of<Category[]>([])),
+      takeUntilDestroyed()
+    ).subscribe(categories => {
+      this.categories.set(categories);
+      this.categoriesLoading.set(false);
+    });
+
+    // switchMap cancels any in-flight request when the URL changes.
+    combineLatest([toObservable(this.state), this.reload]).pipe(
+      tap(() => {
+        this.loading.set(true);
+        this.errorMessage.set('');
+      }),
+      switchMap(([state]) =>
+        this.productService.searchProducts(this.toQuery(state)).pipe(
+          map(result => ({ result, error: null as string | null })),
+          catchError(error => of({
+            result: null,
+            error: (error.error?.message as string | undefined) ?? 'We could not load products. Please try again.'
+          }))
+        )
+      ),
+      takeUntilDestroyed()
+    ).subscribe(({ result, error }) => {
+
+      if (result) {
+        const items = result.items ?? [];
+        const total = result.totalItems ?? result.totalCount ?? items.length;
+        const pages = Math.max(result.totalPages ?? 1, 1);
+
+        this.products.set(items);
+        this.totalCount.set(total);
+        this.totalPages.set(pages);
+
+        // A stale ?page beyond the last page falls back to the last one.
+        if (this.state().page > pages) {
+          this.update({ page: pages }, true);
+        }
+      } else {
+        this.products.set([]);
+        this.errorMessage.set(error ?? '');
+      }
+
+      this.loading.set(false);
+
+      if (this.focusAfterLoad) {
+        this.focusAfterLoad = false;
+        this.heading()?.nativeElement.focus();
+      }
+    });
+
+    effect(() => {
+      this.title.setTitle(`${this.pageHeading()} | Verdant`);
+    });
   }
 
+  protected onFiltersChange(value: ProductFilterValue): void {
+    this.update({ category: value.category, minPrice: value.minPrice, maxPrice: value.maxPrice });
+  }
 
-  searchProducts(): void {
+  protected removeChip(key: Chip['key']): void {
 
-    this.loading.set(true);
+    if (key === 'search') {
+      this.update({ search: '' });
+    } else if (key === 'category') {
+      this.update({ category: '' });
+    } else {
+      this.update({ minPrice: undefined, maxPrice: undefined });
+    }
+  }
 
-    this.errorMessage.set('');
+  protected clearAll(): void {
+    this.update({ search: '', category: '', minPrice: undefined, maxPrice: undefined });
+  }
 
-    const query: ProductQuery = {
+  protected goToPage(page: number): void {
 
-      pageNumber: this.currentPage(),
+    this.focusAfterLoad = true;
+    this.update({ page });
 
-      pageSize: this.pageSize()
+    if (this.isBrowser) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
+  protected retry(): void {
+    this.reload.next(this.reload.value + 1);
+  }
+
+  private update(patch: Partial<ListState>, replaceUrl = false): void {
+
+    const next: ListState = { ...this.state(), page: 1, ...patch };
+
+    const queryParams: Record<string, string | number> = {};
+
+    if (next.search) { queryParams['search'] = next.search; }
+    if (next.category) { queryParams['category'] = next.category; }
+    if (next.minPrice !== undefined) { queryParams['minPrice'] = next.minPrice; }
+    if (next.maxPrice !== undefined) { queryParams['maxPrice'] = next.maxPrice; }
+
+    if (next.page > 1) { queryParams['page'] = next.page; }
+
+    this.router.navigate([], { relativeTo: this.route, queryParams, replaceUrl });
+  }
+
+  private parse(params: ParamMap): ListState {
+
+    const number = (key: string): number | undefined => {
+      const raw = params.get(key);
+      const value = raw === null || raw === '' ? NaN : Number(raw);
+
+      return Number.isFinite(value) && value >= 0 ? value : undefined;
     };
 
-
-    if (this.search.trim()) {
-
-      query.search =
-        this.search.trim();
-    }
-
-
-    if (this.categoryId !== undefined) {
-
-      query.categoryId =
-        this.categoryId;
-    }
-
-
-    if (this.minPrice !== undefined) {
-
-      query.minPrice =
-        this.minPrice;
-    }
-
-
-    if (this.maxPrice !== undefined) {
-
-      query.maxPrice =
-        this.maxPrice;
-    }
-
-
-    if (this.sortBy) {
-
-      query.sortBy =
-        this.sortBy;
-    }
-
-
-    if (this.sortOrder) {
-
-      query.sortOrder =
-        this.sortOrder;
-    }
-
-
-    console.log(
-      'Product query:',
-      query
-    );
-
-
-    this.productService
-      .searchProducts(query)
-      .subscribe({
-
-        next: (data) => {
-
-          console.log(
-            'Product search response:',
-            data
-          );
-
-
-          const response =
-            data as any;
-
-          let productList: Product[] = [];
-
-
-          // Handle array response
-          if (Array.isArray(response)) {
-
-            productList =
-              response;
-          }
-
-          // Handle items response
-          else if (
-            Array.isArray(response.items)
-          ) {
-
-            productList =
-              response.items;
-          }
-
-          // Handle products response
-          else if (
-            Array.isArray(response.products)
-          ) {
-
-            productList =
-              response.products;
-          }
-
-          // Handle PascalCase
-          else if (
-            Array.isArray(response.Items)
-          ) {
-
-            productList =
-              response.Items;
-          }
-
-          else if (
-            Array.isArray(response.Products)
-          ) {
-
-            productList =
-              response.Products;
-          }
-
-          else {
-
-            console.error(
-              'Unexpected product response format:',
-              response
-            );
-          }
-
-
-          this.products.set(
-            productList
-          );
-
-
-          this.totalCount.set(
-
-            response.totalCount ??
-            response.TotalCount ??
-            productList.length
-
-          );
-
-
-          this.totalPages.set(
-
-            response.totalPages ??
-            response.TotalPages ??
-            1
-
-          );
-
-
-          this.currentPage.set(
-
-            response.pageNumber ??
-            response.PageNumber ??
-            this.currentPage()
-
-          );
-
-
-          this.pageSize.set(
-
-            response.pageSize ??
-            response.PageSize ??
-            this.pageSize()
-
-          );
-
-
-          this.loading.set(false);
-        },
-
-
-        error: (error) => {
-
-          console.error(
-            'Error loading products:',
-            error
-          );
-
-          this.products.set([]);
-
-          this.errorMessage.set(
-
-            error.error?.message ??
-            'Unable to load products.'
-
-          );
-
-          this.loading.set(false);
-        }
-
-      });
+    const page = Math.floor(number('page') ?? 1);
+
+    return {
+      search: (params.get('search') ?? '').trim(),
+      category: (params.get('category') ?? '').trim(),
+      minPrice: number('minPrice'),
+      maxPrice: number('maxPrice'),
+      page: page < 1 ? 1 : page
+    };
   }
 
+  private toQuery(state: ListState): ProductQuery {
 
-  loadCategories(): void {
+    const query: ProductQuery = { pageNumber: state.page, pageSize: PAGE_SIZE };
 
-    this.categoryService
-      .getCategories()
-      .subscribe({
+    if (state.search) { query.search = state.search; }
+    if (state.category) { query.category = state.category; }
+    if (state.minPrice !== undefined) { query.minPrice = state.minPrice; }
+    if (state.maxPrice !== undefined) { query.maxPrice = state.maxPrice; }
 
-        next: (data) => {
-
-          console.log(
-            'Categories:',
-            data
-          );
-
-          this.categories.set(data);
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Error loading categories:',
-            error
-          );
-        }
-
-      });
-  }
-
-
-  getCategoryName(
-    categoryId: number
-  ): string {
-
-    const category =
-      this.categories().find(
-
-        category =>
-          category.id === categoryId
-
-      );
-
-    return category?.name ??
-      'Unknown Category';
-  }
-
-
-  clearFilters(): void {
-
-    this.search = '';
-
-    this.categoryId =
-      undefined;
-
-    this.minPrice =
-      undefined;
-
-    this.maxPrice =
-      undefined;
-
-    this.sortBy = '';
-
-    this.sortOrder = '';
-
-    this.currentPage.set(1);
-
-    this.searchProducts();
-  }
-
-
-  nextPage(): void {
-
-    if (
-      this.currentPage() <
-      this.totalPages()
-    ) {
-
-      this.currentPage.update(
-        page => page + 1
-      );
-
-      this.searchProducts();
-    }
-  }
-
-
-  previousPage(): void {
-
-    if (
-      this.currentPage() > 1
-    ) {
-
-      this.currentPage.update(
-        page => page - 1
-      );
-
-      this.searchProducts();
-    }
-  }
-
-
-  goToPage(
-    page: number
-  ): void {
-
-    if (
-      page >= 1 &&
-      page <= this.totalPages()
-    ) {
-
-      this.currentPage.set(page);
-
-      this.searchProducts();
-    }
+    return query;
   }
 }

@@ -16,7 +16,9 @@ import {
   ProductQuery,
   ProductPagedResult,
   CreateProduct,
-  UpdateProduct
+  UpdateProduct,
+  BulkUpdateProduct,
+  ProductImportResponse
 } from '../../shared/models/product.model';
 
 @Injectable({
@@ -61,6 +63,14 @@ export class ProductService {
       params = params.set(
         'search',
         query.search
+      );
+    }
+
+    if (query.category) {
+
+      params = params.set(
+        'category',
+        query.category
       );
     }
 
@@ -151,6 +161,17 @@ export class ProductService {
     );
   }
 
+  // Update many products; the API accepts at most 100 per call
+  bulkUpdateProducts(
+    items: BulkUpdateProduct[]
+  ): Observable<Product[]> {
+
+    return this.http.put<Product[]>(
+      `${this.apiUrl}/bulk-update`,
+      items
+    );
+  }
+
   // Delete product
   deleteProduct(
     id: number
@@ -164,10 +185,7 @@ export class ProductService {
   // Import products synchronously
   importProducts(
     file: File
-  ): Observable<{
-    jobId: string;
-    message: string;
-  }> {
+  ): Observable<ProductImportResponse> {
 
     const formData = new FormData();
 
@@ -176,10 +194,7 @@ export class ProductService {
       file
     );
 
-    return this.http.post<{
-      jobId: string;
-      message: string;
-    }>(
+    return this.http.post<ProductImportResponse>(
       `${this.apiUrl}/import`,
       formData
     );

@@ -15,6 +15,10 @@ import {
   authInterceptor
 } from './core/interceptors/auth-interceptor';
 
+import {
+  devErrorInterceptor
+} from './core/interceptors/dev-error-interceptor';
+
 export const appConfig: ApplicationConfig = {
 
   providers: [
@@ -23,7 +27,8 @@ export const appConfig: ApplicationConfig = {
 
     provideHttpClient(
       withInterceptors([
-        authInterceptor
+        authInterceptor,
+        devErrorInterceptor
       ])
     )
 

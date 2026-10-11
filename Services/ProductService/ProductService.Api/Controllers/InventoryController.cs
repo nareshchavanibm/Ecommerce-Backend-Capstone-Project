@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductService.Application.DTOs.Inventory;
 using ProductService.Application.Interfaces.Services;
@@ -33,6 +34,7 @@ namespace ProductService.Api.Controllers
             return Ok(inventory);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("{productId:int}")]
         public async Task<IActionResult> Create(
             int productId,
@@ -46,6 +48,7 @@ namespace ProductService.Api.Controllers
                 inventory);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{productId:int}")]
         public async Task<IActionResult> Update(
             int productId,

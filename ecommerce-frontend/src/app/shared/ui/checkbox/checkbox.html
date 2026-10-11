@@ -1,0 +1,20 @@
+<div class="checkbox" [class.checkbox--error]="errorText" [class.checkbox--disabled]="disabled()">
+  <input
+    class="checkbox__input"
+    type="checkbox"
+    [id]="id"
+    [checked]="checked()"
+    [disabled]="disabled()"
+    [attr.aria-invalid]="errorText ? 'true' : null"
+    [attr.aria-describedby]="errorText ? id + '-error' : null"
+    (change)="onToggle($event)"
+    (blur)="onBlur()"
+  />
+  <label class="checkbox__label" [for]="id"><ng-content /></label>
+</div>
+
+<div aria-live="polite">
+  @if (errorText) {
+    <p class="checkbox__error" [id]="id + '-error'">{{ errorText }}</p>
+  }
+</div>

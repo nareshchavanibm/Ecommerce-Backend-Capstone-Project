@@ -1,0 +1,60 @@
+<app-auth-layout headline="WELCOME" subheadline="TO YOUR STORE NAME">
+  <h1 class="auth-form__title">Sign up</h1>
+  <p class="auth-form__subtitle">It only takes a minute.</p>
+
+  @if (errorMessage()) {
+    <app-alert class="auth-form__alert">{{ errorMessage() }}</app-alert>
+  }
+
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+    <app-text-input
+      label="Full name"
+      icon="user"
+      formControlName="fullName"
+      autocomplete="name"
+      placeholder="Jane Doe"
+      required
+      [errorMessages]="{ required: 'Enter your full name.' }"
+    />
+
+    <app-text-input
+      label="Email"
+      type="email"
+      icon="mail"
+      formControlName="email"
+      autocomplete="email"
+      placeholder="you@example.com"
+      required
+      [errorMessages]="{ required: 'Enter your email address.' }"
+    />
+
+    <app-password-input
+      label="Password"
+      formControlName="password"
+      autocomplete="new-password"
+      helperText="At least 8 characters, with a number and a symbol."
+      showStrength
+      required
+      [errorMessages]="{ required: 'Create a password.' }"
+    />
+
+    <app-password-input
+      label="Confirm password"
+      formControlName="confirmPassword"
+      autocomplete="new-password"
+      required
+      [errorMessages]="{ required: 'Confirm your password.' }"
+    />
+
+    <app-checkbox formControlName="terms" errorMessage="Accept the terms to create an account.">
+      I agree to the Terms of Service and Privacy Policy
+    </app-checkbox>
+
+    <button app-button type="submit" fullWidth [loading]="loading()">Sign up</button>
+  </form>
+
+  <p class="auth-form__footer">
+    Already have an account?
+    <a class="auth-link" routerLink="/login">Sign in</a>
+  </p>
+</app-auth-layout>

@@ -1,12 +1,19 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using PaymentService.Api.Clients;
+using PaymentService.Api.Middleware;
 using PaymentService.Application;
+using PaymentService.Application.Interfaces;
 using PaymentService.Infrastructure;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter()));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -15,6 +22,23 @@ builder.Services.AddPaymentApplication();
 
 builder.Services.AddPaymentInfrastructure(
     builder.Configuration);
+
+var orderServiceUrl = builder.Configuration["Services:OrderServiceUrl"]
+    ?? throw new InvalidOperationException(
+        "Services:OrderServiceUrl is not configured.");
+
+var internalKey = builder.Configuration["Internal:ApiKey"];
+
+builder.Services.AddHttpClient<IOrderClient, OrderClient>(client =>
+{
+    client.BaseAddress = new Uri(orderServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+
+    if (!string.IsNullOrWhiteSpace(internalKey))
+    {
+        client.DefaultRequestHeaders.Add("X-Internal-Key", internalKey);
+    }
+});
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
@@ -57,6 +81,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

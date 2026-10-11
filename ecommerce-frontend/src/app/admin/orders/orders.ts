@@ -2,8 +2,12 @@ import {
   Component,
   OnInit,
   computed,
+  inject,
   signal
 } from '@angular/core';
+
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime } from 'rxjs';
 
 import {
   Router
@@ -11,6 +15,7 @@ import {
 
 import { DatePipe } from '@angular/common';
 
+import { NotificationService } from '../../core/services/notifications';
 import { OrderService } from '../../core/services/order';
 import { Order } from '../../shared/models/order.model';
 
@@ -59,9 +64,16 @@ export class AdminOrders implements OnInit {
     this.loadOrders();
   }
 
-  loadOrders(): void {
+  private readonly liveUpdates = inject(NotificationService).ordersChanged
+    .pipe(debounceTime(500), takeUntilDestroyed())
+    .subscribe(() => this.loadOrders(true));
 
-    this.loading.set(true);
+  // `silent` refreshes in place without the loading state or resetting the page.
+  loadOrders(silent = false): void {
+
+    if (!silent) {
+      this.loading.set(true);
+    }
 
     this.errorMessage.set('');
 
@@ -72,7 +84,10 @@ export class AdminOrders implements OnInit {
         next: (data) => {
 
           this.orders.set(data);
-          this.currentPage.set(1);
+
+          if (!silent) {
+            this.currentPage.set(1);
+          }
 
           this.loading.set(false);
         },
@@ -95,11 +110,11 @@ export class AdminOrders implements OnInit {
       });
   }
 
-  viewOrder(id: number): void {
+  viewOrder(orderNumber: string): void {
 
     this.router.navigate([
       '/admin/orders/details',
-      id
+      orderNumber
     ]);
   }
 

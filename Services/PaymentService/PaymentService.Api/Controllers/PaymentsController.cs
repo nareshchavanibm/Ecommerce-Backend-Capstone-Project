@@ -13,36 +13,38 @@ namespace PaymentService.Api.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly IOrderClient _orderClient;
 
-    public PaymentsController(IPaymentService paymentService)
+    public PaymentsController(IPaymentService paymentService, IOrderClient orderClient)
     {
         _paymentService = paymentService;
+        _orderClient = orderClient;
     }
 
-    [HttpPost]
-    public async Task<ActionResult<PaymentResponse>> CreatePayment(
-        CreatePaymentRequest request)
+    // Pays the order's own total. Only the order number and method come from the caller.
+    [HttpPost("orders/{orderNumber}")]
+    public async Task<ActionResult<PaymentResponse>> ProcessPayment(
+        string orderNumber,
+        [FromBody] ProcessPaymentRequest request)
     {
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
-
-        if (!int.TryParse(userIdClaim, out var userId))
+        if (!TryGetUserId(out var userId))
         {
-            return Unauthorized(new
-            {
-                message = "Invalid user identity."
-            });
+            return Unauthorized(new { message = "Invalid user identity." });
         }
 
-        request.UserId = userId;
+        var order = await _orderClient.GetOrderByNumberAsync(orderNumber.Trim().ToUpperInvariant());
 
-        var payment =
-            await _paymentService.CreatePaymentAsync(request);
+        if (order == null)
+        {
+            return NotFound(new { message = "Order not found." });
+        }
 
-        return CreatedAtAction(
-            nameof(GetPaymentById),
-            new { id = payment.Id },
-            payment);
+        var payment = await _paymentService.ProcessPaymentAsync(
+            userId,
+            order.Id,
+            request.PaymentMethod);
+
+        return Ok(payment);
     }
 
     [HttpGet("{id:int}")]
@@ -65,10 +67,7 @@ public class PaymentsController : ControllerBase
             return NotFound();
         }
 
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
-
-        if (!int.TryParse(userIdClaim, out var userId))
+        if (!TryGetUserId(out var userId))
         {
             return Unauthorized(new
             {
@@ -82,33 +81,33 @@ public class PaymentsController : ControllerBase
             return Forbid();
         }
 
+        payment.OrderNumber = (await _orderClient.GetOrderAsync(payment.OrderId))?.OrderNumber ?? string.Empty;
+
         return Ok(payment);
     }
 
-    [HttpGet("order/{orderId:int}")]
-    public async Task<ActionResult<IEnumerable<PaymentResponse>>> GetPaymentsByOrderId(
-        int orderId)
+    [HttpGet("order/{orderNumber}")]
+    public async Task<ActionResult<IEnumerable<PaymentResponse>>> GetPaymentsByOrderNumber(
+        string orderNumber)
     {
-        if (orderId <= 0)
+        var order = await _orderClient.GetOrderByNumberAsync(orderNumber.Trim().ToUpperInvariant());
+
+        if (order == null)
         {
-            return BadRequest(new
-            {
-                message = "Order ID must be greater than 0."
-            });
+            return Ok(Array.Empty<PaymentResponse>());
         }
 
         var payments =
-            await _paymentService.GetPaymentsByOrderIdAsync(orderId);
+            (await _paymentService.GetPaymentsByOrderIdAsync(order.Id)).ToList();
+
+        payments.ForEach(payment => payment.OrderNumber = order.OrderNumber);
 
         if (User.IsInRole("Admin"))
         {
             return Ok(payments);
         }
 
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
-
-        if (!int.TryParse(userIdClaim, out var userId))
+        if (!TryGetUserId(out var userId))
         {
             return Unauthorized(new
             {
@@ -147,6 +146,15 @@ public class PaymentsController : ControllerBase
             return NotFound();
         }
 
+        payment.OrderNumber = (await _orderClient.GetOrderAsync(payment.OrderId))?.OrderNumber ?? string.Empty;
+
         return Ok(payment);
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        return int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+            out userId);
     }
 }

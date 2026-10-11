@@ -6,10 +6,7 @@ export interface Inventory {
   isLowStock: boolean;
 }
 
-export interface AddStock {
+export interface InventoryUpdate {
   quantity: number;
-}
-
-export interface RemoveStock {
-  quantity: number;
+  reorderLevel: number;
 }

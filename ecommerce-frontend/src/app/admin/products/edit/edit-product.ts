@@ -25,8 +25,11 @@ export class EditProduct implements OnInit {
     name: '',
     description: '',
     price: 0,
-    categoryId: 0
+    categoryId: 0,
+    imageUrl: ''
   };
+
+  imageFailed = false;
 
   stockQuantity = 0;
 
@@ -75,7 +78,8 @@ export class EditProduct implements OnInit {
           name: data.name,
           description: data.description,
           price: data.price,
-          categoryId: data.categoryId
+          categoryId: data.categoryId,
+          imageUrl: data.imageUrl ?? ''
         };
 
         this.stockQuantity = data.stockQuantity;
@@ -143,7 +147,10 @@ export class EditProduct implements OnInit {
     this.loading = true;
 
     this.productService
-      .updateProduct(this.productId, this.product)
+      .updateProduct(this.productId, {
+        ...this.product,
+        imageUrl: this.product.imageUrl?.trim() || null
+      })
       .subscribe({
 
         next: () => {

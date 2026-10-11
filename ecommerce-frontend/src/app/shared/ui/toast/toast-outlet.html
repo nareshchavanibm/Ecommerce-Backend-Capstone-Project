@@ -1,0 +1,13 @@
+<div class="toasts" role="region" aria-label="Notifications" aria-live="polite">
+  @for (toast of toastService.toasts(); track toast.id) {
+    <div class="toast" [attr.data-variant]="toast.variant" [attr.role]="toast.variant === 'error' ? 'alert' : 'status'">
+      <p class="toast__message">{{ toast.message }}</p>
+
+      <button type="button" class="toast__close" aria-label="Dismiss notification" (click)="toastService.dismiss(toast.id)">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+          <path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      </button>
+    </div>
+  }
+</div>

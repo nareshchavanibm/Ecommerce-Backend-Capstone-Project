@@ -1,76 +1,219 @@
-<div class="home-container">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__inner container">
 
-  <h1>Welcome to E-Commerce</h1>
+    <div class="hero__copy">
+      <p class="eyebrow">Curated for everyday living</p>
 
-  <p class="subtitle">
-    Browse our products
-  </p>
+      <h1 id="hero-title" class="hero__title">Thoughtfully chosen. Simply better.</h1>
 
-
-  @if (loading()) {
-
-  <p>
-    Loading products...
-  </p>
-
-  }
-
-  @else if (errorMessage()) {
-
-  <p>
-    {{ errorMessage() }}
-  </p>
-
-  }
-
-  @else if (products().length === 0) {
-
-  <p>
-    No products found.
-  </p>
-
-  }
-
-  @else {
-
-  <div class="product-grid">
-
-    @for (
-    product of products();
-    track product.id
-    ) {
-
-    <div class="product-card">
-
-      <h3>
-        {{ product.name }}
-      </h3>
-
-      <p>
-        {{ product.description }}
+      <p class="hero__lead">
+        Discover quality products across every category.
       </p>
 
-      <p>
-        <strong>
-          ₹{{ product.price }}
-        </strong>
-      </p>
-
-      <a [routerLink]="[
-              '/products',
-              product.id
-            ]">
-
-        View Details
-
-      </a>
-
+      <div class="hero__actions">
+        <a class="btn btn--light" routerLink="/products">Shop all products</a>
+        <button type="button" class="btn btn--ghost-light" (click)="scrollTo('categories')">Browse categories</button>
+      </div>
     </div>
 
-    }
-
+    <div class="hero__visual" aria-hidden="true">
+      @if (loading()) {
+        <app-skeleton shape="block" height="100%" />
+      } @else if (heroImages().length > 0) {
+        @for (product of heroImages(); track product.id; let i = $index) {
+          <img class="hero__photo" [class]="'hero__photo--' + (i + 1)"
+               [src]="product.imageUrl" alt="" width="360" height="440"
+               [attr.fetchpriority]="i === 0 ? 'high' : null" />
+        }
+      } @else {
+        <div class="hero__art">
+          <svg viewBox="0 0 200 200" width="200" height="200" focusable="false">
+            <circle cx="100" cy="100" r="84" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
+            <path d="M52 124c0-44 31-70 88-70 0 50-25 82-70 82" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M52 148c13-25 31-44 57-56" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+          </svg>
+        </div>
+      }
+    </div>
   </div>
+</section>
 
+<section class="trust" aria-label="Why shop with us">
+  <ul class="trust__list container">
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+        <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+        <path d="M9 12l2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <div>
+        <p class="trust__title">Secure payments</p>
+        <p class="trust__text">Checkout runs through our protected payment service.</p>
+      </div>
+    </li>
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+        <path d="M3 7l9-4 9 4-9 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+        <path d="M3 7v10l9 4 9-4V7M12 11v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+      </svg>
+      <div>
+        <p class="trust__title">Order tracking</p>
+        <p class="trust__text">Follow every order from your account.</p>
+      </div>
+    </li>
+    <li class="trust__item">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+        <rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
+        <path d="M4 10h16M9 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+      <div>
+        <p class="trust__title">Browse freely</p>
+        <p class="trust__text">Explore the full catalogue before you sign up.</p>
+      </div>
+    </li>
+  </ul>
+</section>
+
+@if (errorMessage()) {
+  <section class="section container">
+    <div class="state" role="alert">
+      <p class="state__text">{{ errorMessage() }}</p>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  </section>
+} @else {
+
+  <section id="categories" class="section container" aria-labelledby="categories-title">
+    <header class="section__head">
+      <h2 id="categories-title" class="section__title">Shop by category</h2>
+      <a class="section__link" routerLink="/products">View all products</a>
+    </header>
+
+    @if (loading()) {
+      <div class="category-grid">
+        @for (n of placeholders; track n) {
+          <app-skeleton shape="block" height="96px" />
+        }
+      </div>
+    } @else if (categories().length > 0) {
+      <ul id="category-list" class="category-grid">
+        @for (category of visibleCategories(); track category.id) {
+          <li>
+            <a class="category-card" [routerLink]="['/products']" [queryParams]="{ category: category.name }">
+              <span class="category-card__icon" aria-hidden="true">{{ category.name.charAt(0).toUpperCase() }}</span>
+              <span class="category-card__body">
+                <span class="category-card__name">{{ category.name }}</span>
+                <span class="category-card__count">
+                  {{ category.productCount }} {{ category.productCount === 1 ? 'product' : 'products' }}
+                </span>
+              </span>
+              <svg class="category-card__arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+                <path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.75" />
+              </svg>
+            </a>
+          </li>
+        }
+      </ul>
+
+      @if (hiddenCategoryCount() > 0) {
+        <div class="category-more">
+          <button app-button type="button" variant="outline"
+                  aria-controls="category-list"
+                  [attr.aria-expanded]="categoriesExpanded()"
+                  (click)="categoriesExpanded.set(!categoriesExpanded())">
+            {{ categoriesExpanded() ? 'View less' : 'View more (' + hiddenCategoryCount() + ')' }}
+          </button>
+        </div>
+      }
+    } @else {
+      <p class="state__text">Categories will appear here once they are added.</p>
+    }
+  </section>
+
+  <section class="section container" aria-labelledby="featured-title">
+    <header class="section__head">
+      <h2 id="featured-title" class="section__title">Featured products</h2>
+      <a class="section__link" routerLink="/products">View all</a>
+    </header>
+
+    @if (loading()) {
+      <div class="product-grid">
+        @for (n of placeholders; track n) {
+          <div class="product-skeleton">
+            <app-skeleton shape="block" height="auto" class="product-skeleton__media" />
+            <app-skeleton width="80%" />
+            <app-skeleton width="40%" />
+          </div>
+        }
+      </div>
+    } @else if (featured().length > 0) {
+      <ul class="product-grid">
+        @for (product of featured(); track product.id) {
+          <li>
+            <app-product-card [product]="product" [adding]="cartActions.addingId() === product.id" (addToCart)="cartActions.add($event)" />
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="state__text">No products are available yet.</p>
+    }
+  </section>
+
+  <section class="section container" aria-labelledby="collections-title">
+    <header class="section__head">
+      <h2 id="collections-title" class="section__title">Explore collections</h2>
+    </header>
+
+    <ul class="collections">
+      <li>
+        <a class="collection" routerLink="/products" [queryParams]="{ sortBy: 'price', sortOrder: 'asc' }">
+          <span class="collection__title">Lowest prices</span>
+          <span class="collection__text">Everything, sorted from the most affordable.</span>
+          <span class="collection__cta">Shop now</span>
+        </a>
+      </li>
+      <li>
+        <a class="collection collection--dark" routerLink="/products" [queryParams]="{ sortBy: 'price', sortOrder: 'desc' }">
+          <span class="collection__title">Premium picks</span>
+          <span class="collection__text">Our highest-priced products first.</span>
+          <span class="collection__cta">Shop now</span>
+        </a>
+      </li>
+      <li>
+        <a class="collection" routerLink="/products" [queryParams]="{ sortBy: 'name', sortOrder: 'asc' }">
+          <span class="collection__title">A to Z</span>
+          <span class="collection__text">Browse the full range alphabetically.</span>
+          <span class="collection__cta">Shop now</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  @if (loading() || lowestPriced().length > 0) {
+    <section class="section container" aria-labelledby="value-title">
+      <header class="section__head">
+        <h2 id="value-title" class="section__title">Lowest prices right now</h2>
+        <a class="section__link" routerLink="/products" [queryParams]="{ sortBy: 'price', sortOrder: 'asc' }">See more</a>
+      </header>
+
+      @if (loading()) {
+        <div class="product-grid">
+          @for (n of placeholders; track n) {
+            <div class="product-skeleton">
+              <app-skeleton shape="block" height="auto" class="product-skeleton__media" />
+              <app-skeleton width="80%" />
+              <app-skeleton width="40%" />
+            </div>
+          }
+        </div>
+      } @else {
+        <ul class="product-grid">
+          @for (product of lowestPriced(); track product.id) {
+            <li>
+              <app-product-card [product]="product" [adding]="cartActions.addingId() === product.id" (addToCart)="cartActions.add($event)" />
+            </li>
+          }
+        </ul>
+      }
+    </section>
   }
-
-</div>
+}

@@ -1,0 +1,201 @@
+<div class="page container">
+
+  <h1 class="page__title">My account</h1>
+
+  @if (loadError()) {
+    <app-alert variant="error">{{ loadError() }}</app-alert>
+    <button app-button type="button" variant="outline" (click)="load()">Try again</button>
+  }
+
+  <!-- Personal details -->
+  <section class="card" aria-labelledby="details-title">
+
+    <div class="who">
+      <span class="who__avatar" aria-hidden="true">{{ initial() }}</span>
+
+      <div class="who__text">
+        <h2 id="details-title" class="who__name">{{ displayName() }}</h2>
+        <app-badge [variant]="isAdmin ? 'warning' : 'neutral'">{{ roleLabel }}</app-badge>
+      </div>
+
+      @if (!editingDetails() && profile()) {
+        <button app-button type="button" variant="outline" class="who__action" (click)="startEditingDetails()">
+          Update details
+        </button>
+      }
+    </div>
+
+    @if (editingDetails()) {
+
+      @if (detailsError()) {
+        <app-alert variant="error">{{ detailsError() }}</app-alert>
+      }
+
+      <form class="form" [formGroup]="detailsForm" (ngSubmit)="saveDetails()" novalidate>
+
+        <div class="form__row">
+          <app-text-input label="First name" formControlName="firstName" autocomplete="given-name" required
+                          [errorMessages]="messages.firstName" />
+          <app-text-input label="Last name" formControlName="lastName" autocomplete="family-name" required
+                          [errorMessages]="messages.lastName" />
+        </div>
+
+        <p class="form__note">Your email address ({{ email() }}) cannot be changed here.</p>
+
+        <div class="actions">
+          <button app-button type="submit" [loading]="savingDetails()">Save changes</button>
+          <button app-button type="button" variant="ghost" [disabled]="savingDetails()" (click)="cancelEditingDetails()">Cancel</button>
+        </div>
+      </form>
+
+    } @else {
+
+      <dl class="details">
+        <div class="details__row">
+          <dt>First name</dt>
+          <dd>{{ profile()?.firstName || '-' }}</dd>
+        </div>
+        <div class="details__row">
+          <dt>Last name</dt>
+          <dd>{{ profile()?.lastName || '-' }}</dd>
+        </div>
+        <div class="details__row">
+          <dt>Email</dt>
+          <dd>{{ email() }}</dd>
+        </div>
+        <div class="details__row">
+          <dt>Account type</dt>
+          <dd>{{ roleLabel }}</dd>
+        </div>
+      </dl>
+
+    }
+
+  </section>
+
+  <!-- Delivery addresses -->
+  @if (!isAdmin) {
+  <section class="card" aria-labelledby="addresses-title">
+
+    <div class="card__head">
+      <h2 id="addresses-title" class="card__title">Delivery addresses</h2>
+
+      <button app-button type="button" variant="outline" (click)="openAddressDialog(null)">Add address</button>
+    </div>
+
+    @if (loading()) {
+      <p class="muted">Loading your addresses...</p>
+    } @else if (addresses().length === 0) {
+      <p class="muted">You have not saved a delivery address yet. Add one to use it for your orders.</p>
+    } @else {
+      <ul class="addresses">
+        @for (address of addresses(); track address.id) {
+          <li class="address" [class.address--default]="address.isDefault">
+
+            <div class="address__top">
+              <h3 class="address__name">{{ address.fullName }}</h3>
+              @if (address.isDefault) {
+                <app-badge variant="success">Default</app-badge>
+              }
+            </div>
+
+            <address class="address__body">
+              {{ address.addressLine1 }}<br />
+              @if (address.addressLine2) {
+                {{ address.addressLine2 }}<br />
+              }
+              {{ address.city }}, {{ address.state }} {{ address.postalCode }}<br />
+              {{ address.country }}
+              <span class="address__phone">Phone: {{ address.phone }}</span>
+            </address>
+
+            <div class="address__actions">
+              <button type="button" class="link-btn" (click)="openAddressDialog(address)">Edit</button>
+              <button type="button" class="link-btn" [disabled]="busyAddressId() === address.id" (click)="askDelete(address)">Delete</button>
+              @if (!address.isDefault) {
+                <button type="button" class="link-btn" [disabled]="busyAddressId() === address.id" (click)="makeDefault(address)">
+                  Set as default
+                </button>
+              }
+            </div>
+
+          </li>
+        }
+      </ul>
+    }
+
+  </section>
+  }
+
+  <button app-button type="button" variant="outline" (click)="logout()">Log out</button>
+
+</div>
+
+<!-- Add / edit address -->
+<app-dialog [heading]="editingAddress() ? 'Edit address' : 'Add address'" [(open)]="addressDialogOpen" sheet>
+
+  @if (addressError()) {
+    <app-alert variant="error">{{ addressError() }}</app-alert>
+  }
+
+  <form id="address-form" class="form" [formGroup]="addressForm" (ngSubmit)="saveAddress()" novalidate>
+
+    @if (addressDialogOpen()) {
+      <app-location-picker (found)="applyLocation($event)" />
+    }
+
+    <app-text-input label="Full name" formControlName="fullName" autocomplete="name" required
+                    [errorMessages]="messages.fullName" />
+
+    <app-text-input label="Phone number" type="tel" formControlName="phone" autocomplete="tel" required
+                    numericOnly [maxlength]="10" helperText="10-digit mobile number"
+                    [errorMessages]="messages.phone" />
+
+    <app-text-input label="Address line 1" formControlName="addressLine1" autocomplete="address-line1" required
+                    placeholder="House no., building, street"
+                    [errorMessages]="messages.line1" />
+
+    <app-text-input label="Address line 2" formControlName="addressLine2" autocomplete="address-line2"
+                    placeholder="Landmark, area (optional)"
+                    [errorMessages]="messages.line2" />
+
+    <div class="form__row">
+      <app-text-input label="City" formControlName="city" autocomplete="address-level2" required
+                      [errorMessages]="messages.city" />
+      <app-text-input label="State" formControlName="state" autocomplete="address-level1" required
+                      [errorMessages]="messages.state" />
+    </div>
+
+    <div class="form__row">
+      <app-text-input label="Postal code" formControlName="postalCode" autocomplete="postal-code" required
+                      [errorMessages]="messages.postalCode" />
+      <app-text-input label="Country" formControlName="country" autocomplete="country-name" required
+                      [errorMessages]="messages.country" />
+    </div>
+
+    <app-checkbox formControlName="isDefault">Use as my default delivery address</app-checkbox>
+
+  </form>
+
+  <div dialog-footer class="dialog-actions">
+    <button app-button type="button" variant="ghost" [disabled]="savingAddress()" (click)="addressDialogOpen.set(false)">Cancel</button>
+    <button app-button type="submit" form="address-form" [loading]="savingAddress()">Save address</button>
+  </div>
+
+</app-dialog>
+
+<!-- Delete confirmation -->
+<app-dialog heading="Remove this address?" [(open)]="deleteDialogOpen">
+
+  @if (deleteTarget(); as target) {
+    <p class="muted">
+      {{ target.fullName }}, {{ target.addressLine1 }}, {{ target.city }} will be removed from your saved addresses.
+    </p>
+  }
+
+  <div dialog-footer class="dialog-actions">
+    <button app-button type="button" variant="ghost" (click)="deleteDialogOpen.set(false)">Keep it</button>
+    <button app-button type="button" [loading]="busyAddressId() !== null" (click)="confirmDelete()">Remove</button>
+  </div>
+
+</app-dialog>

@@ -12,6 +12,13 @@ namespace OrderService.Infrastructure.Configurations
 
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.OrderNumber)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            builder.HasIndex(x => x.OrderNumber)
+                .IsUnique();
+
             builder.Property(x => x.UserId)
                 .IsRequired();
 

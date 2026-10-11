@@ -82,6 +82,30 @@ namespace ProductService.Application.Services
             return MapToResponse(inventory);
         }
 
+        public Task<StockReservationResult> ReserveAsync(
+            StockAdjustmentRequest request)
+        {
+            return _inventoryRepository.ReserveAsync(Merge(request));
+        }
+
+        public Task ReleaseAsync(StockAdjustmentRequest request)
+        {
+            return _inventoryRepository.ReleaseAsync(Merge(request));
+        }
+
+        // Repeated products in one request are summed into a single line.
+        private static List<StockLineDto> Merge(StockAdjustmentRequest request)
+        {
+            return request.Items
+                .GroupBy(x => x.ProductId)
+                .Select(group => new StockLineDto
+                {
+                    ProductId = group.Key,
+                    Quantity = group.Sum(x => x.Quantity)
+                })
+                .ToList();
+        }
+
         private static InventoryResponseDto MapToResponse(
             Inventory inventory)
         {
