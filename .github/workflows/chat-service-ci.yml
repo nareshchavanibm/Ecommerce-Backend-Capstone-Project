@@ -1,0 +1,42 @@
+name: ChatService CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Services/ChatService/**'
+      - '.github/workflows/chat-service-ci.yml'
+  pull_request:
+    paths:
+      - 'Services/ChatService/**'
+      - '.github/workflows/chat-service-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Services/ChatService/ChatService.Api/ChatService.Api.csproj
+
+      - name: Build
+        run: dotnet build Services/ChatService/ChatService.Api/ChatService.Api.csproj --configuration Release --no-restore
+
+      - name: Build Docker image (not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Services/ChatService/Dockerfile
+          push: false

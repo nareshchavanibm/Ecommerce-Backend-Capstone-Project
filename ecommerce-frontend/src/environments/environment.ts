@@ -1,6 +1,6 @@
-// Set googleMapsApiKey to enable "use my location" and address search (restrict the key by HTTP referrer).
-// Enable "Maps JavaScript API", "Places API (New)" and "Geocoding API" for the key's project.
+// Committed defaults. Put real keys in environment.local.ts (git-ignored, see environment.example.ts).
+// An empty googleMapsApiKey disables "use my location" and address search.
 export const environment = {
   apiUrl: 'http://172.26.66.30:5100',
-  googleMapsApiKey: 'AIzaSyBL1pRY4XhdqPBmDp0ocHP0xNwYp2eavIk'
+  googleMapsApiKey: ''
 };

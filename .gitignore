@@ -481,3 +481,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 .env.production
+
+# Local frontend environment (holds API keys)
+ecommerce-frontend/src/environments/environment.local.ts
