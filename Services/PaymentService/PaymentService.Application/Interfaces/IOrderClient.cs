@@ -12,4 +12,7 @@ public interface IOrderClient
 
     // Moves a pending order to Confirmed after a successful payment.
     Task MarkPaidAsync(int orderId);
+
+    // Moves a pending order to Confirmed when the customer chose to pay on delivery.
+    Task ConfirmCashOnDeliveryAsync(int orderId);
 }

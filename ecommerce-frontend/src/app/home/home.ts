@@ -5,9 +5,14 @@ import { catchError, forkJoin, map, of } from 'rxjs';
 import { CartActions } from '../core/services/cart-actions';
 import { CategoryService } from '../core/services/category';
 import { ProductService } from '../core/services/product';
+import { PromotionService } from '../core/services/promotion';
+import { TrendingService } from '../core/services/trending';
 import { Category } from '../shared/models/category.model';
 import { Product } from '../shared/models/product.model';
+import { Promotion } from '../shared/models/promotion.model';
 import { ProductCard } from '../shared/ui/product-card/product-card';
+import { PromoCards } from '../shared/ui/promo-cards/promo-cards';
+import { PromoCarousel } from '../shared/ui/promo-carousel/promo-carousel';
 import { Button } from '../shared/ui/button/button';
 import { Skeleton } from '../shared/ui/skeleton/skeleton';
 
@@ -18,7 +23,7 @@ const CATEGORY_PREVIEW_COUNT = 8;
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, Button, ProductCard, Skeleton],
+  imports: [RouterLink, Button, ProductCard, PromoCards, PromoCarousel, Skeleton],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
@@ -29,6 +34,22 @@ export class Home implements OnInit {
   private readonly categoryService = inject(CategoryService);
 
   protected readonly cartActions = inject(CartActions);
+
+  private readonly promotionService = inject(PromotionService);
+
+  private readonly trendingService = inject(TrendingService);
+
+  // Admin-managed promotions and sales-based trending products load on their own;
+  // the page works (and the sections stay hidden) if either request fails.
+  private readonly promotions = signal<Promotion[]>([]);
+
+  protected readonly banners = computed(() => this.promotions().filter(p => p.type === 'Banner'));
+
+  protected readonly offers = computed(() => this.promotions().filter(p => p.type === 'Offer'));
+
+  protected readonly ads = computed(() => this.promotions().filter(p => p.type === 'Ad'));
+
+  protected readonly trending = signal<Product[]>([]);
 
   protected readonly categories = signal<Category[]>([]);
 
@@ -57,6 +78,12 @@ export class Home implements OnInit {
 
   ngOnInit(): void {
     this.load();
+
+    this.promotionService.getActive().pipe(catchError(() => of<Promotion[]>([])))
+      .subscribe(promotions => this.promotions.set(promotions));
+
+    this.trendingService.getTrendingProducts().pipe(catchError(() => of<Product[]>([])))
+      .subscribe(products => this.trending.set(products));
   }
 
   protected load(): void {

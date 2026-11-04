@@ -2,7 +2,7 @@
 
   <h2>Edit Product</h2>
 
-  @if (loadingProduct) {
+  @if (loadingProduct()) {
 
   <p>Loading product...</p>
 
@@ -75,7 +75,7 @@
           Select Category
         </option>
 
-        @for (category of categories; track category.id) {
+        @for (category of categories(); track category.id) {
 
         <option [ngValue]="category.id">
           {{ category.name }}
@@ -128,29 +128,35 @@
 
       <input id="stock"
              type="number"
-             [value]="stockQuantity"
-             disabled />
+             name="stock"
+             [(ngModel)]="stock"
+             min="0"
+             step="1"
+             required />
 
       <small>
-        Manage stock from Inventory Management.
+        Saved together with the product. Customers waiting for this product are notified when it is restocked.
       </small>
 
     </div>
 
 
-    @if (errorMessage) {
+    <app-spec-editor [(specifications)]="specs" />
+
+
+    @if (errorMessage()) {
 
     <p class="error-message">
-      {{ errorMessage }}
+      {{ errorMessage() }}
     </p>
 
     }
 
 
-    @if (successMessage) {
+    @if (successMessage()) {
 
     <p class="success-message">
-      {{ successMessage }}
+      {{ successMessage() }}
     </p>
 
     }
@@ -159,9 +165,9 @@
     <div class="buttons">
 
       <button type="submit"
-              [disabled]="productForm.invalid || loading">
+              [disabled]="productForm.invalid || loading()">
 
-        {{ loading ? 'Updating...' : 'Update Product' }}
+        {{ loading() ? 'Updating...' : 'Update Product' }}
 
       </button>
 

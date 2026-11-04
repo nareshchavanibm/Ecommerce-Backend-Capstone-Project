@@ -3,6 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files first for better Docker layer caching
+COPY Services/Shared/ Services/Shared/
 COPY Services/ProductService/ProductService.Api/ProductService.Api.csproj Services/ProductService/ProductService.Api/
 COPY Services/ProductService/ProductService.Application/ProductService.Application.csproj Services/ProductService/ProductService.Application/
 COPY Services/ProductService/ProductService.Domain/ProductService.Domain.csproj Services/ProductService/ProductService.Domain/

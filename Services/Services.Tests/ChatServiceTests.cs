@@ -79,6 +79,11 @@ public class ChatGovernanceTests
     [InlineData("Can you recommend a gift under 500", null, AgentCatalog.Recommendation)]
     [InlineData("what about cheaper ones", AgentCatalog.Recommendation, AgentCatalog.Recommendation)]
     [InlineData("hello", null, AgentCatalog.CustomerService)]
+    [InlineData("list my delivered orders", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
+    [InlineData("show my recent orders", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
+    [InlineData("which orders have shipped", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
+    [InlineData("what did I purchase last month", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
+    [InlineData("show me running shoes", AgentCatalog.Recommendation, AgentCatalog.Recommendation)]
     public void Router_picks_agent(string message, string? previous, string expected)
     {
         Assert.Equal(expected, new AgentRouter().Route(message, previous));

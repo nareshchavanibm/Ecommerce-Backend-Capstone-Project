@@ -11,6 +11,7 @@ import { Payment } from '../../shared/models/payment.model';
 import { Alert } from '../../shared/ui/alert/alert';
 import { Badge } from '../../shared/ui/badge/badge';
 import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { isCashOnDelivery, paymentSummary } from '../../shared/utils/payment';
 
 const PAID_ORDER_STATUSES = ['Confirmed', 'Processing', 'Shipped', 'Delivered'];
 const SUCCESS_PAYMENT_STATUSES = ['completed', 'successful', 'succeeded', 'paid'];
@@ -51,6 +52,10 @@ export class OrderConfirmation {
   });
 
   protected readonly cancelled = computed(() => this.order()?.status === 'Cancelled');
+
+  protected readonly cashOnDelivery = computed(() => isCashOnDelivery(this.payment()));
+
+  protected readonly paymentSummary = paymentSummary;
 
   constructor() {
 

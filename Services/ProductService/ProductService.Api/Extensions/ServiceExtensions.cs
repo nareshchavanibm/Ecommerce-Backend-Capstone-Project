@@ -21,11 +21,31 @@ namespace ProductService.Api.Extensions
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IInventoryRepository, InventoryRepository>();
+            services.AddScoped<IPromotionRepository, PromotionRepository>();
 
             // Application Services
             services.AddScoped<IProductService, ProductService.Application.Services.ProductService>();
             services.AddScoped<ICategoryService, ProductService.Application.Services.CategoryService>();
             services.AddScoped<IInventoryService, ProductService.Application.Services.InventoryService>();
+            services.AddScoped<IPromotionService, ProductService.Application.Services.PromotionService>();
+
+            // Without an OrderService address, restock notifications are simply skipped.
+            var orderServiceUrl = configuration["Services:OrderServiceUrl"];
+            var internalKey = configuration["Internal:ApiKey"];
+
+            if (!string.IsNullOrWhiteSpace(orderServiceUrl))
+            {
+                services.AddHttpClient<IRestockNotifier, ProductService.Api.Clients.RestockNotifier>(client =>
+                {
+                    client.BaseAddress = new Uri(orderServiceUrl);
+                    client.Timeout = TimeSpan.FromSeconds(5);
+
+                    if (!string.IsNullOrWhiteSpace(internalKey))
+                    {
+                        client.DefaultRequestHeaders.Add("X-Internal-Key", internalKey);
+                    }
+                });
+            }
 
             return services;
         }

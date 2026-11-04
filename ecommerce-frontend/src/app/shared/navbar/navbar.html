@@ -6,7 +6,7 @@
 </div>
 
 <header class="header">
-  <div class="bar container">
+  <div class="bar container" [class.bar--no-search]="inAdmin()">
 
     <button type="button"
             class="icon-btn bar__toggle"
@@ -87,6 +87,7 @@
       }
     </nav>
 
+    @if (!inAdmin()) {
     <div #searchBox class="search" (focusout)="onSearchFocusOut($event, searchBox)">
       <form class="search__form" role="search" (submit)="submitSearch($event)">
         <label class="visually-hidden" for="site-search">Search products</label>
@@ -153,6 +154,7 @@
         </ul>
       }
     </div>
+    }
 
     <div class="actions">
       @if (authService.isLoggedIn()) {

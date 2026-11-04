@@ -10,6 +10,9 @@
 	<ItemGroup>
 		<PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+		<PackageReference Include="Serilog.Enrichers.Span" Version="3.1.0" />
+		<Compile Include="..\Services\Shared\Observability.cs" Link="Observability.cs" />
 	</ItemGroup>
 
 </Project>

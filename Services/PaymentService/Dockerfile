@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
+COPY Services/Shared/ Services/Shared/
 COPY Services/PaymentService/PaymentService.Api/PaymentService.Api.csproj Services/PaymentService/PaymentService.Api/
 COPY Services/PaymentService/PaymentService.Application/PaymentService.Application.csproj Services/PaymentService/PaymentService.Application/
 COPY Services/PaymentService/PaymentService.Domain/PaymentService.Domain.csproj Services/PaymentService/PaymentService.Domain/

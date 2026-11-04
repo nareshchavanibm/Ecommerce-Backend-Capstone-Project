@@ -29,6 +29,14 @@ namespace ProductService.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<Dictionary<int, int>> GetQuantitiesAsync(IReadOnlyCollection<int> productIds)
+        {
+            return await _context.Inventories
+                .AsNoTracking()
+                .Where(x => productIds.Contains(x.ProductId))
+                .ToDictionaryAsync(x => x.ProductId, x => x.Quantity);
+        }
+
         public async Task AddAsync(Inventory inventory)
         {
             await _context.Inventories.AddAsync(inventory);

@@ -20,32 +20,119 @@
       <a class="btn btn--primary" routerLink="/products">Start shopping</a>
     </div>
   } @else {
-    <ul class="list">
-      @for (order of orders(); track order.orderNumber) {
-        <li class="card">
-          <div class="card__head">
-            <h2 class="card__title">Order {{ order.orderNumber }}</h2>
-            <span class="status" [attr.data-status]="order.status">{{ order.status }}</span>
-          </div>
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter orders by status">
+        @for (f of filters; track f.key) {
+          <button
+            type="button"
+            class="chip"
+            [attr.aria-pressed]="filter() === f.key"
+            (click)="filter.set(f.key)">
+            {{ f.label }} <span class="chip__count">{{ counts()[f.key] }}</span>
+          </button>
+        }
+      </div>
 
-          <dl class="card__meta">
-            <div>
-              <dt>Placed on</dt>
-              <dd>{{ order.orderDate | date: 'mediumDate' }}</dd>
-            </div>
-            <div>
-              <dt>Items</dt>
-              <dd>{{ order.items.length }}</dd>
-            </div>
-            <div>
-              <dt>Total</dt>
-              <dd class="card__total">{{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}</dd>
-            </div>
-          </dl>
+      <div class="toolbar__controls">
+        <div class="field">
+          <label class="field__label" for="order-search">Search orders</label>
+          <input
+            id="order-search"
+            type="search"
+            class="field__input"
+            placeholder="Order number or product"
+            autocomplete="off"
+            [value]="search()"
+            (input)="search.set($any($event.target).value)" />
+        </div>
 
-          <a class="btn btn--outline" [routerLink]="['/orders', order.orderNumber]">View order</a>
-        </li>
-      }
-    </ul>
+        <div class="field">
+          <label class="field__label" for="order-sort">Sort by</label>
+          <select
+            id="order-sort"
+            class="field__input"
+            [value]="sort()"
+            (change)="sort.set($any($event.target).value)">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <p class="sr-only" role="status" aria-live="polite">
+      Showing {{ visibleOrders().length }} of {{ orders().length }} orders
+    </p>
+
+    @if (visibleOrders().length === 0) {
+      <div class="state state--empty">
+        <h2 class="state__title">No matching orders</h2>
+        <p class="state__text">Try a different search or status filter.</p>
+        <button type="button" class="btn btn--outline" (click)="clearFilters()">Clear filters</button>
+      </div>
+    } @else {
+      <ul class="list">
+        @for (order of visibleOrders(); track order.orderNumber) {
+          <li class="card">
+            <div class="card__head">
+              <h2 class="card__title">Order {{ order.orderNumber }}</h2>
+              <span class="status" [attr.data-status]="order.status">{{ order.status }}</span>
+            </div>
+
+            @if (itemSummary(order)) {
+              <p class="card__items">{{ itemSummary(order) }}</p>
+            }
+
+            @if (order.status !== 'Cancelled') {
+              <div
+                class="progress"
+                role="img"
+                [attr.aria-label]="'Order progress: ' + order.status">
+                @for (step of steps; track step; let i = $index) {
+                  <span class="progress__step" [class.progress__step--done]="i <= stepIndex(order)"></span>
+                }
+              </div>
+            }
+
+            <dl class="card__meta">
+              <div>
+                <dt>Placed on</dt>
+                <dd>{{ order.orderDate | date: 'mediumDate' }}</dd>
+              </div>
+              <div>
+                <dt>Items</dt>
+                <dd>{{ totalQuantity(order) }}</dd>
+              </div>
+              <div>
+                <dt>Total</dt>
+                <dd class="card__total">{{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}</dd>
+              </div>
+            </dl>
+
+            <div class="card__actions">
+              <a class="btn btn--outline" [routerLink]="['/orders', order.orderNumber]">
+                View order<span class="sr-only"> {{ order.orderNumber }}</span>
+              </a>
+              <button
+                type="button"
+                class="btn-action"
+                [disabled]="actions.reorderingNumber() !== null"
+                (click)="actions.reorder(order)">
+                {{ actions.reorderingNumber() === order.orderNumber ? 'Adding…' : 'Reorder' }}<span class="sr-only"> order {{ order.orderNumber }}</span>
+              </button>
+              @if (order.status !== 'Cancelled') {
+                <button
+                  type="button"
+                  class="btn-action btn-action--outline"
+                  [disabled]="actions.invoiceNumber() === order.orderNumber"
+                  (click)="actions.downloadInvoice(order)">
+                  Invoice<span class="sr-only"> for order {{ order.orderNumber }}</span>
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
   }
 </div>

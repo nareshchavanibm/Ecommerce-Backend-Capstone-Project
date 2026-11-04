@@ -7,6 +7,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files
+COPY Services/Shared/ Services/Shared/
 COPY Services/UserService/UserService.Api/UserService.Api.csproj Services/UserService/UserService.Api/
 COPY Services/UserService/UserService.Application/UserService.Application.csproj Services/UserService/UserService.Application/
 COPY Services/UserService/UserService.Domain/UserService.Domain.csproj Services/UserService/UserService.Domain/

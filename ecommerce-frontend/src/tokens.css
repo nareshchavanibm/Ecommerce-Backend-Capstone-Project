@@ -29,6 +29,18 @@
   --color-warning-bg: #fffaeb;
   --color-rating: #f5a524;
 
+  /* Rating bands: 1 poor, 2 below average, 3 average, 4 good, 5 excellent. Text colors pass AA on white. */
+  --rating-1: #b42318;
+  --rating-2: #c2410c;
+  --rating-3: #a16207;
+  --rating-4: #4d7c0f;
+  --rating-5: #067647;
+  --rating-1-bg: #fef3f2;
+  --rating-2-bg: #fff4ed;
+  --rating-3-bg: #fefce8;
+  --rating-4-bg: #f7fee7;
+  --rating-5-bg: #ecfdf3;
+
   /* Typography */
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'IBM Plex Sans', system-ui, sans-serif;

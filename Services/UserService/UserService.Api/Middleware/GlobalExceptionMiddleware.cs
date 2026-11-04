@@ -48,7 +48,9 @@ namespace UserService.Api.Middleware
 
             var response = new
             {
-                message = exception.Message
+                message = context.Response.StatusCode == StatusCodes.Status500InternalServerError
+                    ? "An unexpected error occurred. Please try again."
+                    : exception.Message
             };
 
             await context.Response.WriteAsync(

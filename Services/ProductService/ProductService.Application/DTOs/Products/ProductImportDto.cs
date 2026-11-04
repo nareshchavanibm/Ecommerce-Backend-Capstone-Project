@@ -19,6 +19,9 @@ namespace ProductService.Application.DTOs.Products
         public string? StockQuantity { get; set; }
 
         public string? ReorderLevel { get; set; }
+
+        // From "Spec:Name" or "Spec:Group:Name" columns; empty cells are left out.
+        public List<ProductSpecificationDto> Specifications { get; set; } = new();
     }
 
     public class ProductImportResult

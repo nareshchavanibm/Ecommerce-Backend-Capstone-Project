@@ -167,6 +167,34 @@ describe('Checkout', () => {
     expect(sessionStorage.getItem('checkout.pendingOrderNumber')).toBeNull();
   });
 
+  it('confirms a cash on delivery order even though its payment stays pending', async () => {
+
+    await open();
+
+    expect(el().textContent).toContain('Cash on delivery');
+
+    await choose('Cash on delivery');
+
+    expect(el().textContent).toContain('pay the order total in cash');
+
+    await submit();
+
+    match('POST', '/api/orders')[0].flush(order());
+    await settle();
+
+    const [pay] = match('POST', '/api/payments/orders/ORD-10');
+
+    expect(pay.request.body).toEqual({ paymentMethod: 'CashOnDelivery' });
+
+    pay.flush({ ...payment('Pending'), paymentMethod: 'CashOnDelivery', transactionId: null });
+    await settle();
+
+    match('DELETE', '/api/cart')[0].flush(null);
+    await settle();
+
+    expect(TestBed.inject(Router).url).toBe('/order-confirmation/ORD-10');
+  });
+
   it('ignores a second submit while the first is processing', async () => {
 
     await open();

@@ -61,6 +61,33 @@
   display: none;
 }
 
+.home-link {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-lg);
+}
+
+.home-link:hover {
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+}
+
+.form-title {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-2xl);
+}
+
+.form-subtitle {
+  margin-bottom: var(--space-6);
+  color: var(--color-text-muted);
+}
+
 @media (min-width: 672px) {
   .form-side {
     padding: var(--space-10);

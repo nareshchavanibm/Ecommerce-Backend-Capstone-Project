@@ -7,19 +7,21 @@ namespace ChatService.Api.Options
         // Azure OpenAI / Foundry resource endpoint, e.g. https://my-resource.openai.azure.com
         public string Endpoint { get; set; } = string.Empty;
 
-        public string ChatDeployment { get; set; } = "gpt-4o-mini";
+        public string ChatDeployment { get; set; } = "gpt-5.4-mini";
 
         // Optional; without it the knowledge base falls back to keyword search.
         public string EmbeddingDeployment { get; set; } = string.Empty;
 
-        public string ApiVersion { get; set; } = "2024-10-21";
-
         // Empty => Microsoft Entra ID (managed identity / developer sign-in) via DefaultAzureCredential.
         public string ApiKey { get; set; } = string.Empty;
 
-        public int MaxOutputTokens { get; set; } = 500;
+        public int MaxOutputTokens { get; set; } = 1500;
 
-        public double Temperature { get; set; } = 0.2;
+        // Null leaves the model default; reasoning models reject any other value.
+        public double? Temperature { get; set; }
+
+        // low keeps replies quick for a support chat; empty omits it for models that are not reasoning models.
+        public string ReasoningEffort { get; set; } = "low";
 
         public bool IsConfigured => !string.IsNullOrWhiteSpace(Endpoint);
 

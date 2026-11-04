@@ -46,10 +46,21 @@ export class Login {
 
   protected readonly notice = signal('');
 
+  private returnUrl = '/home';
+
   constructor() {
     const params = inject(ActivatedRoute).snapshot.queryParamMap;
 
-    if (params.has('registered')) {
+    // Only same-site paths are followed after sign-in.
+    const back = params.get('returnUrl');
+
+    if (back && back.startsWith('/') && !back.startsWith('//')) {
+      this.returnUrl = back;
+    }
+
+    if (params.has('expired')) {
+      this.notice.set('Your session has expired. Please sign in again to continue.');
+    } else if (params.has('registered')) {
       this.notice.set('Account created. Sign in to continue.');
     } else if (params.has('reset')) {
       this.notice.set('Password updated. Sign in with your new password.');
@@ -84,7 +95,7 @@ export class Login {
           localStorage.removeItem(REMEMBERED_EMAIL_KEY);
         }
 
-        this.router.navigate(['/home']);
+        this.router.navigateByUrl(this.returnUrl);
       },
       error: error => {
         this.loading.set(false);

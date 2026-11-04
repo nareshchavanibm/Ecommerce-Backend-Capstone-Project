@@ -8,8 +8,10 @@ import { BehaviorSubject, catchError, combineLatest, map, of, switchMap, tap } f
 import { CartActions } from '../../core/services/cart-actions';
 import { CategoryService } from '../../core/services/category';
 import { ProductService } from '../../core/services/product';
+import { ReviewService } from '../../core/services/review';
 import { Category } from '../../shared/models/category.model';
 import { Product, ProductQuery } from '../../shared/models/product.model';
+import { RatingSummary } from '../../shared/models/review.model';
 import { Alert } from '../../shared/ui/alert/alert';
 import { Dialog } from '../../shared/ui/dialog/dialog';
 import { Pagination } from '../../shared/ui/pagination/pagination';
@@ -55,6 +57,8 @@ export class ProductList {
 
   private readonly categoryService = inject(CategoryService);
 
+  private readonly reviewService = inject(ReviewService);
+
   private readonly title = inject(Title);
 
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -66,6 +70,8 @@ export class ProductList {
   protected readonly placeholders = Array.from({ length: 8 }, (_, i) => i);
 
   protected readonly products = signal<Product[]>([]);
+
+  protected readonly ratings = signal<Map<number, RatingSummary>>(new Map());
 
   protected readonly totalCount = signal(0);
 
@@ -170,6 +176,10 @@ export class ProductList {
         this.products.set(items);
         this.totalCount.set(total);
         this.totalPages.set(pages);
+
+        // Ratings are secondary; the grid shows without them.
+        this.reviewService.getSummaries(items.map(item => item.id))
+          .subscribe(summaries => this.ratings.set(summaries));
 
         // A stale ?page beyond the last page falls back to the last one.
         if (this.state().page > pages) {

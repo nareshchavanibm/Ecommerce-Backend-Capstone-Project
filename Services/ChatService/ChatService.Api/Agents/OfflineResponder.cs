@@ -17,8 +17,11 @@ namespace ChatService.Api.Agents
         [GeneratedRegex(@"\b(human|person|agent|representative|someone)\b|talk to|speak to", RegexOptions.IgnoreCase)]
         private static partial Regex WantsHuman();
 
-        [GeneratedRegex(@"\b(my orders?|where is my|order status|track(ing)? (my )?order|recent orders?)\b", RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"\b(my (\w+ )?orders?|where is my|order status|track(ing)? (my )?order|(recent|latest|past|previous|delivered|shipped|pending|confirmed|processing|cancell?ed) orders?)\b", RegexOptions.IgnoreCase)]
         private static partial Regex OrderIntent();
+
+        [GeneratedRegex(@"\b(pending|confirmed|processing|shipped|delivered|cancell?ed)\b", RegexOptions.IgnoreCase)]
+        private static partial Regex StatusWord();
 
         [GeneratedRegex(@"ORD-[A-Z0-9]{6,12}")]
         private static partial Regex OrderNumber();
@@ -76,7 +79,16 @@ namespace ChatService.Api.Agents
 
             if (OrderIntent().IsMatch(message) && _runner.Tool("list_my_orders", context.Role) is { } list)
             {
-                var payload = await list.ExecuteAsync(new JsonObject(), context, cancellationToken);
+                var filter = new JsonObject();
+
+                if (StatusWord().Match(message) is { Success: true } word)
+                {
+                    var status = word.Value.ToLowerInvariant().Replace("canceled", "cancelled");
+
+                    filter["status"] = char.ToUpperInvariant(status[0]) + status[1..];
+                }
+
+                var payload = await list.ExecuteAsync(filter, context, cancellationToken);
 
                 if (payload.Contains("login_required"))
                 {
@@ -87,7 +99,9 @@ namespace ChatService.Api.Agents
 
                 if (orders.Count == 0)
                 {
-                    return Say("You do not have any orders yet.");
+                    return Say(filter["status"] is { } wanted
+                        ? $"You do not have any {wanted.ToString().ToLowerInvariant()} orders."
+                        : "You do not have any orders yet.");
                 }
 
                 context.Order = orders[0];
@@ -135,6 +149,15 @@ namespace ChatService.Api.Agents
         [GeneratedRegex(@"\b(recent|latest|summary|summari[sz]e|overview|how many|pending orders|(show|list) (all )?orders)\b", RegexOptions.IgnoreCase)]
         private static partial Regex RecentOrdersIntent();
 
+        [GeneratedRegex(@"\b(stock|quantity|re-?order level|inventory)( level)?\s+(of|for)\s+(the\s+)?(?<name>.+?)[\s?.!]*$", RegexOptions.IgnoreCase)]
+        private static partial Regex InventoryIntent();
+
+        [GeneratedRegex(@"re-?order level\s+(less than|below|under|<)\s*(?<n>\d+)", RegexOptions.IgnoreCase)]
+        private static partial Regex ReorderBelowIntent();
+
+        [GeneratedRegex(@"\blow (on )?stock\b", RegexOptions.IgnoreCase)]
+        private static partial Regex LowStockIntent();
+
         private async Task<AgentResult> RespondAdminAsync(
             string message,
             AgentContext context,
@@ -159,6 +182,58 @@ namespace ChatService.Api.Agents
                 return Say(context.Order is null
                     ? "I could not find that order."
                     : $"Order {context.Order.OrderNumber} is {context.Order.Status}.");
+            }
+
+            var below = ReorderBelowIntent().Match(message);
+
+            if ((below.Success || LowStockIntent().IsMatch(message)) &&
+                _runner.Tool("list_inventory", context.Role) is { } listing)
+            {
+                var filter = new JsonObject();
+
+                if (below.Success)
+                {
+                    filter["reorder_level_below"] = int.Parse(below.Groups["n"].Value);
+                }
+                else
+                {
+                    filter["low_stock_only"] = true;
+                }
+
+                var payload = await listing.ExecuteAsync(filter, context, cancellationToken);
+
+                if (payload.Contains("inventory_unavailable"))
+                {
+                    return Say("I could not load inventory right now.");
+                }
+
+                using var doc = JsonDocument.Parse(payload);
+                var total = doc.RootElement.GetProperty("totalMatches").GetInt32();
+                var lines = doc.RootElement.GetProperty("items").EnumerateArray().Select(i =>
+                    $"{i.GetProperty("name").GetString()}: stock {i.GetProperty("quantity").GetInt32()}, reorder level {i.GetProperty("reorderLevel").GetInt32()}").ToList();
+
+                return Say(total == 0
+                    ? "No products match."
+                    : $"{total} products match:\n{string.Join("\n", lines)}" + (total > lines.Count ? $"\n...and {total - lines.Count} more." : string.Empty));
+            }
+
+            if (InventoryIntent().Match(message) is { Success: true } stock &&
+                _runner.Tool("get_product_inventory", context.Role) is { } inventory)
+            {
+                var payload = await inventory.ExecuteAsync(
+                    new JsonObject { ["product_name"] = stock.Groups["name"].Value }, context, cancellationToken);
+
+                if (payload.Contains("no_matching_product") || payload.Contains("inventory_unavailable"))
+                {
+                    return Say("I could not find inventory for that product.");
+                }
+
+                using var doc = JsonDocument.Parse(payload);
+                var lines = doc.RootElement.EnumerateArray().Select(i =>
+                    $"{i.GetProperty("name").GetString()}: stock {i.GetProperty("quantity").GetInt32()}, reorder level {i.GetProperty("reorderLevel").GetInt32()}" +
+                    (i.GetProperty("isLowStock").GetBoolean() ? " (low stock)" : string.Empty));
+
+                return Say(string.Join("; ", lines) + ".");
             }
 
             // Guide questions ("how do I ...") take priority over the order summary.

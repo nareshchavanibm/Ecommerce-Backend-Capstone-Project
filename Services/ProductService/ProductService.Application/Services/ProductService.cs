@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using ProductService.Application.DTOs;
 using ProductService.Application.DTOs.Products;
+using ProductService.Application.Exceptions;
 using ProductService.Application.Interfaces.Repositories;
 using ProductService.Application.Interfaces.Services;
 using ProductService.Domain.Entities;
@@ -44,8 +45,13 @@ namespace ProductService.Application.Services
 
             if (!string.IsNullOrEmpty(cachedProduct))
             {
-                return JsonSerializer.Deserialize<ProductResponseDto>(
+                var cached = JsonSerializer.Deserialize<ProductResponseDto>(
                     cachedProduct);
+
+                if (cached != null)
+                    await ApplyStockAsync([cached]);
+
+                return cached;
             }
 
             var product = await _productRepository.GetByIdAsync(id);
@@ -55,10 +61,15 @@ namespace ProductService.Application.Services
 
             var result = MapToResponse(product);
 
+            result.Specifications = SpecificationNormalizer.ToDtos(
+                await _productRepository.GetSpecificationsAsync(id));
+
             await _cache.SetStringAsync(
                 cacheKey,
                 JsonSerializer.Serialize(result),
                 GetCacheOptions());
+
+            await ApplyStockAsync([result]);
 
             return result;
         }
@@ -80,8 +91,12 @@ namespace ProductService.Application.Services
 
             if (!string.IsNullOrEmpty(cachedProducts))
             {
-                return JsonSerializer.Deserialize<List<ProductResponseDto>>(
+                var cached = JsonSerializer.Deserialize<List<ProductResponseDto>>(
                     cachedProducts) ?? new List<ProductResponseDto>();
+
+                await ApplyStockAsync(cached);
+
+                return cached;
             }
 
             var products = await _productRepository.GetAllAsync(
@@ -100,6 +115,8 @@ namespace ProductService.Application.Services
                 cacheKey,
                 JsonSerializer.Serialize(result),
                 GetCacheOptions());
+
+            await ApplyStockAsync(result);
 
             return result;
         }
@@ -123,8 +140,12 @@ namespace ProductService.Application.Services
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonSerializer.Deserialize<PagedProductResponseDto>(
+                var cached = JsonSerializer.Deserialize<PagedProductResponseDto>(
                     cachedResult)!;
+
+                await ApplyStockAsync(cached.Items);
+
+                return cached;
             }
 
             var result = await _productRepository.GetPagedAsync(
@@ -157,6 +178,8 @@ namespace ProductService.Application.Services
                 JsonSerializer.Serialize(response),
                 GetCacheOptions());
 
+            await ApplyStockAsync(response.Items);
+
             return response;
         }
 
@@ -167,7 +190,14 @@ namespace ProductService.Application.Services
                 .GetByIdAsync(request.CategoryId);
 
             if (category == null)
-                throw new InvalidOperationException("Category not found.");
+                throw new BusinessRuleException("Category not found.");
+
+            var specificationError = SpecificationNormalizer.TryNormalize(
+                request.Specifications,
+                out var specifications);
+
+            if (specificationError != null)
+                throw new BusinessRuleException(specificationError);
 
             var product = new Product
             {
@@ -182,9 +212,16 @@ namespace ProductService.Application.Services
 
             await _productRepository.AddAsync(product);
 
+            if (specifications.Count > 0)
+                await _productRepository.ReplaceSpecificationsAsync(product.Id, specifications);
+
             await InvalidateProductCacheAsync();
 
-            return MapToResponse(product);
+            var response = MapToResponse(product);
+
+            response.Specifications = SpecificationNormalizer.ToDtos(specifications);
+
+            return response;
         }
 
         public async Task<ProductResponseDto?> UpdateAsync(
@@ -200,7 +237,14 @@ namespace ProductService.Application.Services
                 .GetByIdAsync(request.CategoryId);
 
             if (category == null)
-                throw new InvalidOperationException("Category not found.");
+                throw new BusinessRuleException("Category not found.");
+
+            var specificationError = SpecificationNormalizer.TryNormalize(
+                request.Specifications,
+                out var specifications);
+
+            if (specificationError != null)
+                throw new BusinessRuleException(specificationError);
 
             product.Name = request.Name;
             product.Description = request.Description;
@@ -211,9 +255,18 @@ namespace ProductService.Application.Services
 
             await _productRepository.UpdateAsync(product);
 
+            if (request.Specifications != null)
+                await _productRepository.ReplaceSpecificationsAsync(id, specifications);
+
             await InvalidateProductCacheAsync();
 
-            return MapToResponse(product);
+            var response = MapToResponse(product);
+
+            response.Specifications = request.Specifications != null
+                ? SpecificationNormalizer.ToDtos(specifications)
+                : SpecificationNormalizer.ToDtos(await _productRepository.GetSpecificationsAsync(id));
+
+            return response;
         }
 
         public async Task<List<ProductResponseDto>> BulkUpdateAsync(
@@ -271,7 +324,7 @@ namespace ProductService.Application.Services
                         if (string.IsNullOrWhiteSpace(
                                 request.CategoryName))
                         {
-                            throw new InvalidOperationException(
+                            throw new BusinessRuleException(
                                 $"Category with ID {categoryId} not found. " +
                                 "Provide CategoryName to create a new category.");
                         }
@@ -331,7 +384,7 @@ namespace ProductService.Application.Services
                     StringComparer.OrdinalIgnoreCase);
 
             var categoriesById = categories.Values.ToDictionary(x => x.Id);
-            var products = new List<(Product Product, int Quantity, int ReorderLevel)>();
+            var products = new List<(Product Product, int Quantity, int ReorderLevel, List<ProductSpecification> Specifications)>();
 
             foreach (var row in rows)
             {
@@ -347,7 +400,7 @@ namespace ProductService.Application.Services
                     continue;
                 }
 
-                products.Add((built.Product!, built.Quantity, built.ReorderLevel));
+                products.Add((built.Product!, built.Quantity, built.ReorderLevel, built.Specifications));
             }
 
             if (products.Count > 0)
@@ -364,6 +417,17 @@ namespace ProductService.Application.Services
                         ReorderLevel = x.ReorderLevel
                     }).ToList());
 
+                var specifications = products
+                    .SelectMany(x => x.Specifications.Select(s =>
+                    {
+                        s.ProductId = x.Product.Id;
+                        return s;
+                    }))
+                    .ToList();
+
+                if (specifications.Count > 0)
+                    await _productRepository.AddSpecificationsAsync(specifications);
+
                 await InvalidateProductCacheAsync();
             }
 
@@ -371,6 +435,8 @@ namespace ProductService.Application.Services
 
             return result;
         }
+
+        private static readonly List<ProductSpecification> NoSpecifications = new();
 
         private static bool TryParseCount(string? text, int fallback, out int value)
         {
@@ -397,7 +463,7 @@ namespace ProductService.Application.Services
             return true;
         }
 
-        private async Task<(Product? Product, int Quantity, int ReorderLevel, string? Error)> TryBuildImportProductAsync(
+        private async Task<(Product? Product, int Quantity, int ReorderLevel, List<ProductSpecification> Specifications, string? Error)> TryBuildImportProductAsync(
             ProductImportRow row,
             Dictionary<string, Category> categories,
             Dictionary<int, Category> categoriesById)
@@ -407,29 +473,34 @@ namespace ProductService.Application.Services
             var imageUrl = row.ImageUrl?.Trim();
 
             if (string.IsNullOrEmpty(name))
-                return (null, 0, 0, "Name is required.");
+                return (null, 0, 0, NoSpecifications, "Name is required.");
 
             if (name.Length > 100)
-                return (null, 0, 0, "Name cannot exceed 100 characters.");
+                return (null, 0, 0, NoSpecifications, "Name cannot exceed 100 characters.");
 
             if (description.Length > 1000)
-                return (null, 0, 0, "Description cannot exceed 1000 characters.");
+                return (null, 0, 0, NoSpecifications, "Description cannot exceed 1000 characters.");
 
             if (!decimal.TryParse(
                     row.Price,
                     System.Globalization.NumberStyles.Number,
                     System.Globalization.CultureInfo.InvariantCulture,
                     out var price) || price <= 0)
-                return (null, 0, 0, "Price must be a number greater than 0.");
+                return (null, 0, 0, NoSpecifications, "Price must be a number greater than 0.");
 
             if (!string.IsNullOrEmpty(imageUrl) && imageUrl.Length > 500)
-                return (null, 0, 0, "ImageUrl cannot exceed 500 characters.");
+                return (null, 0, 0, NoSpecifications, "ImageUrl cannot exceed 500 characters.");
 
             if (!TryParseCount(row.StockQuantity, DefaultImportStock, out var quantity))
-                return (null, 0, 0, "StockQuantity must be a whole number, 0 or more.");
+                return (null, 0, 0, NoSpecifications, "StockQuantity must be a whole number, 0 or more.");
 
             if (!TryParseCount(row.ReorderLevel, DefaultImportReorderLevel, out var reorderLevel))
-                return (null, 0, 0, "ReorderLevel must be a whole number, 0 or more.");
+                return (null, 0, 0, NoSpecifications, "ReorderLevel must be a whole number, 0 or more.");
+
+            var specificationError = SpecificationNormalizer.TryNormalize(row.Specifications, out var specifications);
+
+            if (specificationError != null)
+                return (null, 0, 0, NoSpecifications, specificationError);
 
             Category? category;
             var categoryName = row.CategoryName?.Trim();
@@ -437,7 +508,7 @@ namespace ProductService.Application.Services
             if (!string.IsNullOrEmpty(categoryName))
             {
                 if (categoryName.Length > 100)
-                    return (null, 0, 0, "CategoryName cannot exceed 100 characters.");
+                    return (null, 0, 0, NoSpecifications, "CategoryName cannot exceed 100 characters.");
 
                 if (!categories.TryGetValue(categoryName, out category))
                 {
@@ -450,11 +521,11 @@ namespace ProductService.Application.Services
             else if (int.TryParse(row.CategoryId, out var categoryId))
             {
                 if (!categoriesById.TryGetValue(categoryId, out category))
-                    return (null, 0, 0, $"CategoryId {categoryId} does not exist.");
+                    return (null, 0, 0, NoSpecifications, $"CategoryId {categoryId} does not exist.");
             }
             else
             {
-                return (null, 0, 0, "CategoryName or a valid CategoryId is required.");
+                return (null, 0, 0, NoSpecifications, "CategoryName or a valid CategoryId is required.");
             }
 
             return (new Product
@@ -465,7 +536,7 @@ namespace ProductService.Application.Services
                 ImageUrl = string.IsNullOrEmpty(imageUrl) ? null : imageUrl,
                 CategoryId = category.Id,
                 IsActive = true
-            }, quantity, reorderLevel, null);
+            }, quantity, reorderLevel, specifications, null);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -522,6 +593,23 @@ namespace ProductService.Application.Services
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             };
+        }
+
+        // Stock changes on every order, so it is added after the cached copy is read.
+        private async Task ApplyStockAsync(IReadOnlyCollection<ProductResponseDto> products)
+        {
+            if (products.Count == 0)
+                return;
+
+            var quantities = await _inventoryRepository.GetQuantitiesAsync(
+                products.Select(x => x.Id).ToList());
+
+            foreach (var product in products)
+            {
+                product.StockQuantity = quantities.TryGetValue(product.Id, out var quantity)
+                    ? quantity
+                    : null;
+            }
         }
 
         private static ProductResponseDto MapToResponse(Product product)

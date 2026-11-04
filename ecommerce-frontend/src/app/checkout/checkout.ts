@@ -16,6 +16,7 @@ import { Payment } from '../shared/models/payment.model';
 import { Alert } from '../shared/ui/alert/alert';
 import { Button } from '../shared/ui/button/button';
 import { Skeleton } from '../shared/ui/skeleton/skeleton';
+import { isCashOnDelivery } from '../shared/utils/payment';
 
 export type CheckoutStage = 'review' | 'processing' | 'pending' | 'failed';
 
@@ -27,7 +28,8 @@ const PENDING_STATUSES = ['pending', 'processing', 'initiated'];
 
 export const PAYMENT_METHODS = [
   { value: 'Card', label: 'Card' },
-  { value: 'UPI', label: 'UPI' }
+  { value: 'UPI', label: 'UPI' },
+  { value: 'CashOnDelivery', label: 'Cash on delivery' }
 ];
 
 @Component({
@@ -297,7 +299,10 @@ export class Checkout implements OnInit {
 
     const status = (payment?.status ?? '').toLowerCase();
 
-    if (SUCCESS_STATUSES.includes(status)) {
+    // Cash on delivery is paid at the door, so the backend keeps it Pending once the order is confirmed.
+    if (isCashOnDelivery(payment) && PENDING_STATUSES.includes(status)) {
+      this.complete(orderNumber);
+    } else if (SUCCESS_STATUSES.includes(status)) {
       this.complete(orderNumber);
     } else if (PENDING_STATUSES.includes(status)) {
       this.errorMessage.set('');

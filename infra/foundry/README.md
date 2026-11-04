@@ -4,7 +4,7 @@ Provisions the model backend for the store assistant (`Services/ChatService`).
 
 ## What gets created
 - Foundry resource (`AIServices`) and a project, `<prefix>-support-assistant`
-- Deployments: `gpt-4o-mini` (agents) and `text-embedding-3-small` (RAG embeddings)
+- Deployments: `gpt-5.4-mini` (agents) and `text-embedding-3-small` (RAG embeddings)
 - Content filter policy `store-assistant-filter` (hate, sexual, violence, self-harm, jailbreak and indirect-attack prompt shields, protected material)
 - Log Analytics workspace with Audit and RequestResponse logs
 
@@ -18,7 +18,7 @@ Put the printed values in the environment used by `docker-compose.yml`:
 | Variable | Value |
 | --- | --- |
 | `FOUNDRY_ENDPOINT` | printed endpoint |
-| `FOUNDRY_CHAT_DEPLOYMENT` | `gpt-4o-mini` |
+| `FOUNDRY_CHAT_DEPLOYMENT` | `gpt-5.4-mini` |
 | `FOUNDRY_EMBEDDING_DEPLOYMENT` | `text-embedding-3-small` (empty = keyword search only) |
 | `FOUNDRY_API_KEY` | from `az cognitiveservices account keys list` (dev only) |
 

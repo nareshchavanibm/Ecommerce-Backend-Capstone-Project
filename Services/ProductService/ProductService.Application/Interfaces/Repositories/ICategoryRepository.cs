@@ -13,6 +13,8 @@ namespace ProductService.Application.Interfaces.Repositories
 
         Task<bool> ExistsByNameAsync(string name);
 
+        Task<bool> HasProductsAsync(int categoryId);
+
         Task AddAsync(Category category);
 
         Task UpdateAsync(Category category);

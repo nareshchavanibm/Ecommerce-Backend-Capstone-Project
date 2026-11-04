@@ -22,20 +22,41 @@
 
     <p class="card__description">{{ product().description }}</p>
 
+    @if (rating(); as summary) {
+      <app-star-rating class="card__rating" [value]="summary.average" [count]="summary.count" size="sm" showValue />
+    }
+
     <p class="card__price">{{ product().price | currency: 'INR' : 'symbol' : '1.0-2' }}</p>
 
     @if (canBuy) {
-      <button
-        app-button
-        type="button"
-        class="card__action"
-        fullWidth
-        [loading]="adding()"
-        [disabled]="!inStock"
-        (click)="addToCart.emit(product())"
-      >
-        {{ inStock ? 'Add to cart' : 'Unavailable' }}
-      </button>
+      @if (inStock) {
+        <button
+          app-button
+          type="button"
+          class="card__action"
+          fullWidth
+          [loading]="adding()"
+          (click)="addToCart.emit(product())"
+        >
+          Add to cart
+        </button>
+      } @else {
+        <button
+          app-button
+          type="button"
+          class="card__action"
+          variant="outline"
+          fullWidth
+          [attr.aria-pressed]="alerts.isSubscribed(product().id)"
+          (click)="alerts.toggle(product())"
+        >
+          {{ alerts.isSubscribed(product().id) ? 'You will be notified' : 'Notify me' }}
+        </button>
+      }
+    } @else {
+      <a class="card__edit" [routerLink]="['/admin/products/edit', product().id]">
+        Edit<span class="visually-hidden"> {{ product().name }}</span>
+      </a>
     }
   </div>
 </article>

@@ -66,6 +66,20 @@ internal sealed class FakeOrderClient : IOrderClient
 
         return Task.CompletedTask;
     }
+
+    public List<int> CashOnDelivery { get; } = new();
+
+    public Task ConfirmCashOnDeliveryAsync(int orderId)
+    {
+        if (MarkPaidFails != null)
+        {
+            throw MarkPaidFails;
+        }
+
+        CashOnDelivery.Add(orderId);
+
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeGateway : IPaymentGateway
@@ -130,11 +144,36 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task Cash_on_delivery_is_not_accepted_as_an_online_payment()
+    public async Task Cash_on_delivery_confirms_the_order_without_charging_and_stays_pending()
     {
+        var payment = await _service.ProcessPaymentAsync(7, 10, "CashOnDelivery");
+
+        Assert.Equal(PaymentMethod.CashOnDelivery, payment.PaymentMethod);
+        Assert.Equal(PaymentStatus.Pending, payment.Status);
+        Assert.Equal(450.50m, payment.Amount);
+        Assert.Null(_gateway.ChargedAmount);
+        Assert.Null(payment.PaidAt);
+        Assert.Equal(new[] { 10 }, _orders.CashOnDelivery);
+        Assert.Empty(_orders.Paid);
+    }
+
+    [Fact]
+    public async Task Cash_on_delivery_is_marked_failed_when_the_order_cannot_be_confirmed()
+    {
+        _orders.MarkPaidFails = new BusinessRuleException("This order was cancelled.");
+
         await Assert.ThrowsAsync<BusinessRuleException>(() => _service.ProcessPaymentAsync(7, 10, "CashOnDelivery"));
 
-        Assert.Empty(_orders.Paid);
+        Assert.All(_payments.Payments, p => Assert.Equal(PaymentStatus.Failed, p.Status));
+    }
+
+    [Fact]
+    public async Task A_second_cash_on_delivery_attempt_is_rejected()
+    {
+        await _service.ProcessPaymentAsync(7, 10, "CashOnDelivery");
+        _orders.Order = new(10, 7, 450.50m, "Pending");
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _service.ProcessPaymentAsync(7, 10, "CashOnDelivery"));
     }
 
     [Fact]
@@ -180,6 +219,7 @@ public class PaymentServiceTests
         var payment = await _service.ProcessPaymentAsync(7, 10, "Card");
 
         Assert.Equal(PaymentStatus.Failed, payment.Status);
+        Assert.Equal("declined", payment.FailureReason);
         Assert.Empty(_orders.Paid);
     }
 

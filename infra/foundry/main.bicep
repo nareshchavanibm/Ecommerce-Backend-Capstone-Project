@@ -9,8 +9,8 @@ param namePrefix string
 param location string = resourceGroup().location
 
 @description('Chat model deployed for the agents. Check the Foundry model catalog for what is available in your region.')
-param chatModelName string = 'gpt-4o-mini'
-param chatModelVersion string = '2024-07-18'
+param chatModelName string = 'gpt-5.4-mini'
+param chatModelVersion string = '2026-03-17'
 
 param embeddingModelName string = 'text-embedding-3-small'
 param embeddingModelVersion string = '1'

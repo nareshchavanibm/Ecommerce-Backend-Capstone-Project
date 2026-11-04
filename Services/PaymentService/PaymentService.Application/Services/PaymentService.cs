@@ -28,12 +28,6 @@ public class PaymentService(
             throw new BusinessRuleException("Choose a valid payment method.");
         }
 
-        if (method == PaymentMethod.CashOnDelivery)
-        {
-            throw new BusinessRuleException(
-                "Cash on delivery is not available. Please pay with Card or UPI.");
-        }
-
         var order = await orderClient.GetOrderAsync(orderId)
             ?? throw new NotFoundException("Order not found.");
 
@@ -75,6 +69,25 @@ public class PaymentService(
             throw new BusinessRuleException("Payment already exists for this order.");
         }
 
+        // Nothing is charged now; the payment stays Pending until the cash is collected.
+        if (method == PaymentMethod.CashOnDelivery)
+        {
+            try
+            {
+                await orderClient.ConfirmCashOnDeliveryAsync(orderId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Order {OrderId} could not be confirmed for cash on delivery.", orderId);
+
+                await SetFailedAsync(payment);
+
+                throw;
+            }
+
+            return Map(payment, order.OrderNumber);
+        }
+
         GatewayResult result;
 
         try
@@ -95,7 +108,11 @@ public class PaymentService(
         {
             await SetFailedAsync(payment);
 
-            return Map(payment, order.OrderNumber);
+            var declined = Map(payment, order.OrderNumber);
+
+            declined.FailureReason = result.FailureReason;
+
+            return declined;
         }
 
         payment.Status = PaymentStatus.Successful;

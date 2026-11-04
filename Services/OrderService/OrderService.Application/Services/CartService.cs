@@ -47,6 +47,11 @@ namespace OrderService.Application.Services
                 throw new BusinessRuleException("This product is no longer available.");
             }
 
+            if (product.StockQuantity is <= 0)
+            {
+                throw new BusinessRuleException("This product is out of stock.");
+            }
+
             var cart = await GetOrCreateCartAsync(userId);
 
             var existing = (await cartItemRepository.GetByCartIdAsync(cart.Id))

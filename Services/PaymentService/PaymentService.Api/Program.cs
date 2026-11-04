@@ -1,14 +1,19 @@
+using ECommerce.Api;
+using ECommerce.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using PaymentService.Api.Clients;
 using PaymentService.Api.Middleware;
 using PaymentService.Application;
 using PaymentService.Application.Interfaces;
+using PaymentService.Application.Services;
 using PaymentService.Infrastructure;
 using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddObservability();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -18,10 +23,16 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddPaymentApplication();
+builder.Services.AddValidationMessage();
+
+builder.Services.AddPaymentApplication(
+    builder.Configuration.GetSection("PaymentSimulation").Get<PaymentSimulationOptions>());
 
 builder.Services.AddPaymentInfrastructure(
     builder.Configuration);
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<PaymentService.Infrastructure.Data.AppDbContext>("database", tags: ["ready"]);
 
 var orderServiceUrl = builder.Configuration["Services:OrderServiceUrl"]
     ?? throw new InvalidOperationException(
@@ -81,6 +92,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseObservability();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

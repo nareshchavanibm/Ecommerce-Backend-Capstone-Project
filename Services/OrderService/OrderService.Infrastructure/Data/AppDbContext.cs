@@ -22,6 +22,8 @@ namespace OrderService.Infrastructure.Data
 
         public DbSet<NotificationRead> NotificationReads { get; set; }
 
+        public DbSet<StockAlert> StockAlerts { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
+COPY Services/Shared/ Services/Shared/
 COPY Services/OrderService/OrderService.Api/OrderService.Api.csproj Services/OrderService/OrderService.Api/
 COPY Services/OrderService/OrderService.Application/OrderService.Application.csproj Services/OrderService/OrderService.Application/
 COPY Services/OrderService/OrderService.Domain/OrderService.Domain.csproj Services/OrderService/OrderService.Domain/

@@ -12,9 +12,13 @@ namespace ProductService.Infrastructure.Data
 
         public DbSet<Product> Products { get; set; }
 
+        public DbSet<ProductSpecification> ProductSpecifications { get; set; }
+
         public DbSet<Category> Categories { get; set; }
 
         public DbSet<Inventory> Inventories { get; set; }
+
+        public DbSet<Promotion> Promotions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

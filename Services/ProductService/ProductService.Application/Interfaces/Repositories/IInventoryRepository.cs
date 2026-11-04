@@ -9,6 +9,8 @@ namespace ProductService.Application.Interfaces.Repositories
 
         Task<List<Inventory>> GetAllAsync();
 
+        Task<Dictionary<int, int>> GetQuantitiesAsync(IReadOnlyCollection<int> productIds);
+
         Task AddAsync(Inventory inventory);
 
         Task AddRangeAsync(List<Inventory> inventories);

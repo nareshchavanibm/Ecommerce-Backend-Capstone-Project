@@ -12,10 +12,11 @@ import { CategoryService } from '../../core/services/category';
 
 import { Product } from '../../shared/models/product.model';
 import { Category } from '../../shared/models/category.model';
+import { Pagination } from '../../shared/ui/pagination/pagination';
 
 @Component({
   selector: 'app-admin-products',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, Pagination],
   templateUrl: './admin-products.html',
   styleUrl: './admin-products.css'
 })

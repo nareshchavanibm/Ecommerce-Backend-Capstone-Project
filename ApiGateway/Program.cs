@@ -1,3 +1,4 @@
+using ECommerce.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
@@ -5,6 +6,8 @@ using System.Text;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddObservability();
 
 // =========================
 // CORS
@@ -88,6 +91,8 @@ builder.Services
         builder.Configuration.GetSection("ReverseProxy"));
 
 var app = builder.Build();
+
+app.UseObservability();
 
 // =========================
 // Security Headers

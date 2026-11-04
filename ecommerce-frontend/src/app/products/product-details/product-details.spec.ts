@@ -61,6 +61,7 @@ describe('ProductDetails', () => {
   };
 
   afterEach(() => {
+    http.match(req => req.url.includes('/api/reviews') || req.url.includes('/stock-alerts'));
     http.verify();
     localStorage.clear();
   });
@@ -108,11 +109,12 @@ describe('ProductDetails', () => {
     expect(el().querySelector<HTMLButtonElement>('button[aria-label="Increase quantity"]')!.disabled).toBe(true);
   });
 
-  it('disables add to cart when the inventory API reports no stock', async () => {
+  it('replaces add to cart with a notify option when there is no stock', async () => {
 
     await open(true, { productId: 5, productName: 'Trail Shoe', stockQuantity: 0, reorderLevel: 2, isLowStock: true });
 
-    expect(el().querySelector<HTMLButtonElement>('.buy__add')!.disabled).toBe(true);
+    expect(el().querySelector('.buy__add')!.textContent).toContain('Notify me');
     expect(el().textContent).toContain('Out of stock');
+    expect(el().querySelector('.buy')!.textContent).not.toContain('Add to cart');
   });
 });

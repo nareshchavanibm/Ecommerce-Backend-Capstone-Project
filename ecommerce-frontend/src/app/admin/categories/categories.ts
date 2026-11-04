@@ -8,9 +8,11 @@ import { Router } from '@angular/router';
 
 import { CategoryService } from '../../core/services/category';
 import { Category } from '../../shared/models/category.model';
+import { Pagination } from '../../shared/ui/pagination/pagination';
 
 @Component({
   selector: 'app-categories',
+  imports: [Pagination],
   templateUrl: './categories.html',
   styleUrl: './categories.css'
 })

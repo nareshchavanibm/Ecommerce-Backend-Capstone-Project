@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, debounceTime, map, of } from 'rxjs';
 
 import { NotificationService } from '../../core/services/notifications';
+import { OrderActions } from '../../core/services/order-actions';
 import { OrderService } from '../../core/services/order';
 import { PaymentService } from '../../core/services/payment';
 import { Order, OrderItem } from '../../shared/models/order.model';
@@ -15,6 +16,7 @@ import { Breadcrumbs, Crumb } from '../../shared/ui/breadcrumbs/breadcrumbs';
 import { Button } from '../../shared/ui/button/button';
 import { Dialog } from '../../shared/ui/dialog/dialog';
 import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { paymentSummary } from '../../shared/utils/payment';
 import { ToastService } from '../../shared/ui/toast/toast.service';
 
 // Order of a normal fulfilment; Cancelled is handled separately.
@@ -41,9 +43,13 @@ export class OrderDetails {
 
   private readonly toast = inject(ToastService);
 
+  protected readonly actions = inject(OrderActions);
+
   protected readonly order = signal<Order | null>(null);
 
   protected readonly payment = signal<Payment | null>(null);
+
+  protected readonly paymentSummary = paymentSummary;
 
   protected readonly loading = signal(true);
 

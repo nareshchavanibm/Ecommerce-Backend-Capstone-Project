@@ -40,6 +40,12 @@ namespace ProductService.Infrastructure.Repositories
                 .AnyAsync(x => x.Name == name);
         }
 
+        public async Task<bool> HasProductsAsync(int categoryId)
+        {
+            return await _context.Products
+                .AnyAsync(x => x.CategoryId == categoryId);
+        }
+
         public async Task AddAsync(Category category)
         {
             await _context.Categories.AddAsync(category);

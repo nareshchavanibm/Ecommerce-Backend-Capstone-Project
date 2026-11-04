@@ -48,7 +48,18 @@
 
         <h1 class="info__title">{{ item.name }}</h1>
 
-        <p class="info__id">Product ID: <strong>{{ item.id }}</strong></p>
+        @if (rating(); as summary) {
+          @if (summary.count > 0) {
+            <button type="button" class="info__rating" (click)="scrollToReviews()">
+              <app-star-rating [value]="summary.average" [count]="summary.count" showValue />
+              <span class="visually-hidden">Go to reviews</span>
+            </button>
+          }
+        }
+
+        @if (authService.getRole() === 'Admin') {
+          <p class="info__id">Product ID: <strong>{{ item.id }}</strong></p>
+        }
 
         <p class="info__price">{{ item.price | currency: 'INR' : 'symbol' : '1.0-2' }}</p>
 
@@ -62,11 +73,27 @@
               <app-badge variant="success">In stock</app-badge>
             }
           </p>
+        } @else if (outOfStock()) {
+          <p class="info__stock" aria-live="polite">
+            <app-badge variant="danger">Out of stock</app-badge>
+          </p>
         }
 
         <p class="info__description">{{ item.description }}</p>
 
-        @if (authService.getRole() !== 'Admin') {
+        @if (authService.getRole() !== 'Admin' && outOfStock()) {
+        <div class="buy">
+          <button
+            app-button
+            type="button"
+            class="buy__add"
+            variant="outline"
+            [attr.aria-pressed]="alerts.isSubscribed(item.id)"
+            (click)="alerts.toggle(item)">
+            {{ alerts.isSubscribed(item.id) ? 'You will be notified' : 'Notify me when available' }}
+          </button>
+        </div>
+        } @else if (authService.getRole() !== 'Admin') {
         <div class="buy">
           <app-quantity-stepper
             label="Quantity"
@@ -96,9 +123,15 @@
         @if (!authService.isLoggedIn()) {
           <p class="info__note">You will be asked to log in before adding items to your cart.</p>
         }
+        } @else {
+        <a class="info__edit" [routerLink]="['/admin/products/edit', item.id]">Edit product</a>
         }
       </div>
     </div>
+
+    <app-product-specifications [specifications]="item.specifications" />
+
+    <app-product-reviews [productId]="item.id" (summaryChange)="onSummary($event)" />
 
     @if (related().length > 0) {
       <section class="related" aria-labelledby="related-title">
@@ -109,6 +142,7 @@
             <li>
               <app-product-card
                 [product]="other"
+                [rating]="ratings().get(other.id) ?? null"
                 [adding]="cartActions.addingId() === other.id"
                 (addToCart)="cartActions.add($event)" />
             </li>

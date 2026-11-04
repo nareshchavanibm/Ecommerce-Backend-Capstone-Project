@@ -6,10 +6,13 @@ using ChatService.Api.Foundry;
 using ChatService.Api.Governance;
 using ChatService.Api.Options;
 using ChatService.Api.Rag;
+using ECommerce.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddObservability();
 
 builder.Services.AddControllers();
 
@@ -31,6 +34,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<KnowledgeIndexer>(
 
 builder.Services.AddSingleton<IAgentTool, SearchKnowledgeTool>();
 builder.Services.AddSingleton<IAgentTool, SearchAdminHelpTool>();
+builder.Services.AddSingleton<IAgentTool, GetProductInventoryTool>();
+builder.Services.AddSingleton<IAgentTool, ListInventoryTool>();
 builder.Services.AddSingleton<IAgentTool, SearchProductsTool>();
 builder.Services.AddSingleton<IAgentTool, EscalateTool>();
 builder.Services.AddTransient<IAgentTool, LookupOrderTool>();
@@ -98,13 +103,13 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseObservability();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-
-app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 var foundry = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<FoundryOptions>>().Value;
 

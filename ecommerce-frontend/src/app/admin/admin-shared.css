@@ -333,16 +333,6 @@ textarea.ng-touched.ng-invalid {
   margin: 0;
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
 @media (min-width: 672px) {
   .admin-menu {
     grid-template-columns: repeat(2, 1fr);

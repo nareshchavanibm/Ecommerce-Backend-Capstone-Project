@@ -6,7 +6,8 @@ import {
 } from '@angular/common/http';
 
 import {
-  Observable
+  Observable,
+  map
 } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -48,6 +49,19 @@ export class ProductService {
 
     return this.http.get<Product>(
       `${this.apiUrl}/${id}`
+    );
+  }
+
+  // The product with this id as an array, or an empty one; never a 404.
+  lookupProduct(
+    id: number
+  ): Observable<Product | null> {
+
+    return this.http.get<Product[]>(
+      `${this.apiUrl}/lookup`,
+      { params: { id } }
+    ).pipe(
+      map(items => items[0] ?? null)
     );
   }
 

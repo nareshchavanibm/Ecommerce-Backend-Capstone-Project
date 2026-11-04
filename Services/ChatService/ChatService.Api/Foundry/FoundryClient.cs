@@ -47,7 +47,7 @@ namespace ChatService.Api.Foundry
     // Talks to a model deployment in a Microsoft AI Foundry / Azure OpenAI resource.
     public class FoundryClient : IChatModel, IEmbeddingModel
     {
-        private static readonly string[] Scope = { "https://cognitiveservices.azure.com/.default" };
+        private static readonly string[] Scope = { "https://ai.azure.com/.default" };
 
         private readonly HttpClient _http;
         private readonly FoundryOptions _options;
@@ -75,10 +75,22 @@ namespace ChatService.Api.Foundry
         {
             var body = new JsonObject
             {
+                ["model"] = _options.ChatDeployment,
                 ["messages"] = new JsonArray(messages.Select(m => (JsonNode?)m.DeepClone()).ToArray()),
-                ["max_tokens"] = _options.MaxOutputTokens,
-                ["temperature"] = _options.Temperature
+                // Counts reasoning tokens as well as the visible answer.
+                ["max_completion_tokens"] = _options.MaxOutputTokens
             };
+
+            // GPT-5 family models accept only the default temperature, so it is sent only when configured.
+            if (_options.Temperature is { } temperature)
+            {
+                body["temperature"] = temperature;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_options.ReasoningEffort))
+            {
+                body["reasoning_effort"] = _options.ReasoningEffort;
+            }
 
             if (tools is { Count: > 0 })
             {
@@ -86,9 +98,7 @@ namespace ChatService.Api.Foundry
                 body["tool_choice"] = "auto";
             }
 
-            var path = $"openai/deployments/{Uri.EscapeDataString(_options.ChatDeployment)}/chat/completions";
-
-            var (status, json) = await PostAsync(path, body, cancellationToken);
+            var (status, json) = await PostAsync("openai/v1/chat/completions", body, cancellationToken);
 
             if (status == HttpStatusCode.BadRequest &&
                 json?["error"]?["code"]?.GetValue<string>() == "content_filter")
@@ -137,12 +147,11 @@ namespace ChatService.Api.Foundry
             {
                 var body = new JsonObject
                 {
+                    ["model"] = _options.EmbeddingDeployment,
                     ["input"] = new JsonArray(batch.Select(i => (JsonNode?)JsonValue.Create(i)).ToArray())
                 };
 
-                var path = $"openai/deployments/{Uri.EscapeDataString(_options.EmbeddingDeployment)}/embeddings";
-
-                var (_, json) = await PostAsync(path, body, cancellationToken);
+                var (_, json) = await PostAsync("openai/v1/embeddings", body, cancellationToken);
 
                 var data = json?["data"] as JsonArray
                     ?? throw new ModelUnavailableException("The embedding model returned an unexpected response.");
@@ -161,7 +170,7 @@ namespace ChatService.Api.Foundry
             JsonObject body,
             CancellationToken cancellationToken)
         {
-            var url = $"{_options.Endpoint.TrimEnd('/')}/{path}?api-version={_options.ApiVersion}";
+            var url = $"{_options.Endpoint.TrimEnd('/')}/{path}";
 
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
@@ -214,8 +223,11 @@ namespace ChatService.Api.Foundry
                     !(response.StatusCode == HttpStatusCode.BadRequest &&
                       json?["error"]?["code"]?.GetValue<string>() == "content_filter"))
                 {
+                    // The provider's error code and message hold no customer data and explain 400/401/404/429 quickly.
+                    var detail = json?["error"]?["code"]?.ToString() + " " + json?["error"]?["message"]?.ToString();
+
                     throw new ModelUnavailableException(
-                        $"The model call failed with status {(int)response.StatusCode}.");
+                        $"The model call failed with status {(int)response.StatusCode}. {detail}".TrimEnd());
                 }
 
                 return (response.StatusCode, json);

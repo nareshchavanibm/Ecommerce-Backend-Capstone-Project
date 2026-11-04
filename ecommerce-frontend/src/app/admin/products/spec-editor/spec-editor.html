@@ -1,0 +1,89 @@
+<fieldset class="specs" [disabled]="disabled()">
+
+  <legend class="specs__legend">
+    Specifications <span class="specs__optional">(optional)</span>
+  </legend>
+
+  <p class="specs__hint" [id]="id + '-hint'">
+    Group related details under a heading, such as Display or Warranty, like a product spec sheet.
+  </p>
+
+  <datalist [id]="id + '-groups'">
+    @for (group of groups; track group) {
+      <option [value]="group"></option>
+    }
+  </datalist>
+
+  @if (specifications().length > 0) {
+    <ul class="specs__list">
+      @for (spec of specifications(); track $index) {
+        <li class="row" [class.row--error]="error($index)">
+
+          <div class="row__fields">
+
+            <div class="row__field">
+              <label class="row__label" [for]="id + '-group-' + $index">Group</label>
+              <input
+                [id]="id + '-group-' + $index"
+                type="text"
+                [value]="spec.group ?? ''"
+                [attr.list]="id + '-groups'"
+                [attr.maxlength]="maxGroup"
+                placeholder="General"
+                (input)="update($index, 'group', $event)" />
+            </div>
+
+            <div class="row__field">
+              <label class="row__label" [for]="id + '-name-' + $index">Name</label>
+              <input
+                [id]="id + '-name-' + $index"
+                type="text"
+                [value]="spec.name"
+                [attr.maxlength]="maxName"
+                [attr.aria-invalid]="error($index) ? 'true' : null"
+                [attr.aria-describedby]="error($index) ? id + '-error-' + $index : id + '-hint'"
+                placeholder="Screen Size"
+                (input)="update($index, 'name', $event)"
+                (blur)="markTouched($index)" />
+            </div>
+
+            <div class="row__field row__field--value">
+              <label class="row__label" [for]="id + '-value-' + $index">Value</label>
+              <input
+                [id]="id + '-value-' + $index"
+                type="text"
+                [value]="spec.value"
+                [attr.maxlength]="maxValue"
+                [attr.aria-invalid]="error($index) ? 'true' : null"
+                [attr.aria-describedby]="error($index) ? id + '-error-' + $index : id + '-hint'"
+                placeholder="6.5 inch"
+                (input)="update($index, 'value', $event)"
+                (blur)="markTouched($index)" />
+            </div>
+
+            <button type="button" class="row__remove" (click)="remove($index)">
+              Remove<span class="visually-hidden"> specification {{ $index + 1 }}</span>
+            </button>
+
+          </div>
+
+          @if (error($index); as message) {
+            <p class="row__error" [id]="id + '-error-' + $index" role="alert">{{ message }}</p>
+          }
+
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="specs__footer">
+    <button type="button" class="specs__add" [disabled]="!canAdd()" (click)="add()">
+      Add specification
+    </button>
+
+    @if (!canAdd()) {
+      <span class="specs__limit">Limit of {{ maxRows }} reached.</span>
+    }
+  </div>
+
+</fieldset>

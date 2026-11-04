@@ -1,0 +1,44 @@
+<fieldset
+  #group
+  class="rate"
+  [class.rate--error]="errorText"
+  [disabled]="disabled()"
+  [attr.aria-describedby]="errorText ? id + '-error' : id + '-hint'"
+  (focusout)="onFocusOut($event, group)"
+>
+  <legend class="rate__legend">{{ label() }}</legend>
+
+  <div class="rate__stars" [attr.data-band]="band" (mouseleave)="hover.set(0)">
+    @for (star of stars; track star) {
+      <input
+        class="rate__radio visually-hidden"
+        type="radio"
+        [id]="id + '-' + star"
+        [name]="id"
+        [value]="star"
+        [checked]="value() === star"
+        [attr.aria-invalid]="errorText ? 'true' : null"
+        (change)="select(star)"
+      />
+      <label
+        class="rate__star"
+        [class.rate__star--on]="star <= shown"
+        [for]="id + '-' + star"
+        (mouseenter)="hover.set(star)"
+      >
+        <span class="visually-hidden">{{ optionLabel(star) }}</span>
+        <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" focusable="false">
+          <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z" />
+        </svg>
+      </label>
+    }
+
+    <span class="rate__text" aria-hidden="true">{{ shownLabel }}</span>
+  </div>
+
+  <p class="visually-hidden" [id]="id + '-hint'" aria-live="polite">{{ shownLabel }}</p>
+
+  @if (errorText) {
+    <p class="rate__error" [id]="id + '-error'">{{ errorText }}</p>
+  }
+</fieldset>

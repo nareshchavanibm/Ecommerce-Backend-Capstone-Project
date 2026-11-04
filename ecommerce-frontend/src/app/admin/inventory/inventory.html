@@ -64,7 +64,7 @@
     </table>
 
     @if (totalPages() > 1) {
-      <app-pagination class="pager" [page]="page()" [totalPages]="totalPages()" (pageChange)="page.set($event)" />
+      <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="page.set($event)" />
     }
 
   }

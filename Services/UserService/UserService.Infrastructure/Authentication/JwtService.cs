@@ -31,7 +31,12 @@ namespace UserService.Infrastructure.Authentication
 
                 new Claim(
                     ClaimTypes.Role,
-                    user.Role.ToString())
+                    user.Role.ToString()),
+
+                // Shown next to product reviews.
+                new Claim(
+                    ClaimTypes.Name,
+                    $"{user.FirstName} {user.LastName}".Trim())
             };
 
             var key = _configuration["Jwt:Key"]
@@ -53,11 +58,13 @@ namespace UserService.Infrastructure.Authentication
                 securityKey,
                 SecurityAlgorithms.HmacSha256);
 
+            var minutes = _configuration.GetValue("Jwt:AccessTokenMinutes", 30);
+
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2),
+                expires: DateTime.UtcNow.AddMinutes(minutes),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler()

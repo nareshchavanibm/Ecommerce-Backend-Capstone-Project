@@ -1,15 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { ProductService } from '../../../core/services/product';
 import { CategoryService } from '../../../core/services/category';
 import { Category } from '../../../shared/models/category.model';
-import { CreateProduct } from '../../../shared/models/product.model';
+import { CreateProduct, ProductSpecification } from '../../../shared/models/product.model';
+import { cleanSpecifications, validateSpecifications } from '../../../shared/utils/specifications';
+import { SpecEditor } from '../spec-editor/spec-editor';
 
 @Component({
   selector: 'app-add-product',
-  imports: [FormsModule],
+  imports: [FormsModule, SpecEditor],
   templateUrl: './add-product.html',
   styleUrl: './add-product.css'
 })
@@ -25,6 +27,8 @@ export class AddProduct implements OnInit {
   };
 
   imageFailed = false;
+
+  specs = signal<ProductSpecification[]>([]);
 
   categories: Category[] = [];
 
@@ -83,11 +87,22 @@ export class AddProduct implements OnInit {
       return;
     }
 
+    const specificationError = validateSpecifications(this.specs());
+
+    if (specificationError) {
+      this.errorMessage = specificationError;
+      return;
+    }
+
     this.loading = true;
 
     const imageUrl = this.product.imageUrl?.trim();
 
-    this.productService.createProduct({ ...this.product, imageUrl: imageUrl || null }).subscribe({
+    this.productService.createProduct({
+      ...this.product,
+      imageUrl: imageUrl || null,
+      specifications: cleanSpecifications(this.specs())
+    }).subscribe({
       next: () => {
         this.loading = false;
         this.successMessage = 'Product created successfully.';

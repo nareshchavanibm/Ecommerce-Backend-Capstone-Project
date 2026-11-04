@@ -28,6 +28,9 @@ public class PaymentResponse
 
     public string? TransactionId { get; set; }
 
+    // Why the provider declined; only set on the response to the attempt itself.
+    public string? FailureReason { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? PaidAt { get; set; }

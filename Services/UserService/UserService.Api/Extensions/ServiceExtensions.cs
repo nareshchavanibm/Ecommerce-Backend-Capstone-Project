@@ -23,6 +23,11 @@ namespace UserService.Api.Extensions
             // Repositories
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IAddressRepository, AddressRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+            services.AddSingleton(TimeProvider.System);
+            services.AddSingleton(
+                configuration.GetSection("Jwt").Get<AuthSettings>() ?? new AuthSettings());
 
             // Authentication
             services.AddScoped<IPasswordHasher, PasswordHasher>();

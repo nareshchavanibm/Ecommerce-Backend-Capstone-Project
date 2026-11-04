@@ -124,6 +124,21 @@ namespace OrderService.Application.Services
                 (await orderRepository.GetByUserIdAsync(userId)).ToList());
         }
 
+        public async Task<IReadOnlyList<TrendingProductDto>> GetTrendingProductsAsync(int days, int take)
+        {
+            days = Math.Clamp(days, 1, 365);
+            take = Math.Clamp(take, 1, 50);
+
+            var top = await orderItemRepository.GetTopSellingAsync(DateTime.UtcNow.AddDays(-days), take);
+
+            return top
+                .Select(x => new TrendingProductDto { ProductId = x.ProductId, UnitsSold = x.UnitsSold })
+                .ToList();
+        }
+
+        public Task<bool> HasPurchasedAsync(int userId, int productId) =>
+            orderItemRepository.HasDeliveredAsync(userId, productId);
+
         public async Task<IEnumerable<OrderResponseDto>> GetAllOrdersAsync()
         {
             return await BuildResponsesAsync(

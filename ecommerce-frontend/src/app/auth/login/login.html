@@ -1,7 +1,4 @@
-<app-auth-layout headline="WELCOME" subheadline="BACK TO YOUR STORE NAME">
-  <h1 class="auth-form__title">Sign in</h1>
-  <p class="auth-form__subtitle">Welcome back! Enter your details to continue.</p>
-
+<app-auth-layout headline="WELCOME" subheadline="BACK TO YOUR STORE NAME" heading="Sign in" subheading="Welcome back! Enter your details to continue.">
   @if (notice()) {
     <app-alert variant="success" class="auth-form__alert">{{ notice() }}</app-alert>
   }

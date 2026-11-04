@@ -89,6 +89,8 @@ services:
 
       ConnectionStrings__Redis: "redis:6379"
 
+      Services__OrderServiceUrl: "http://orderservice:8080"
+
       Internal__ApiKey: "${INTERNAL_API_KEY}"
 
       Jwt__Key: "${JWT_KEY}"
@@ -192,7 +194,7 @@ services:
 
       # Leave FOUNDRY_ENDPOINT empty to run in retrieval-only mode.
       Foundry__Endpoint: "${FOUNDRY_ENDPOINT:-}"
-      Foundry__ChatDeployment: "${FOUNDRY_CHAT_DEPLOYMENT:-gpt-4o-mini}"
+      Foundry__ChatDeployment: "${FOUNDRY_CHAT_DEPLOYMENT:-gpt-5.4-mini}"
       Foundry__EmbeddingDeployment: "${FOUNDRY_EMBEDDING_DEPLOYMENT:-}"
       Foundry__ApiKey: "${FOUNDRY_API_KEY:-}"
 
@@ -206,6 +208,42 @@ services:
     depends_on:
       - productservice
       - orderservice
+
+    networks:
+      - ecommerce-network
+
+  # =========================
+  # REVIEW SERVICE (ratings and reviews)
+  # =========================
+  reviewservice:
+    build:
+      context: .
+      dockerfile: Services/ReviewService/Dockerfile
+
+    image: localhost/ecommerce-reviewservice:latest
+    container_name: ecommerce-reviewservice
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceReviewDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+
+      Services__OrderServiceUrl: "http://orderservice:8080"
+      Internal__ApiKey: "${INTERNAL_API_KEY}"
+
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+
+    ports:
+      - "5099:8080"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      orderservice:
+        condition: service_started
 
     networks:
       - ecommerce-network
@@ -249,6 +287,7 @@ services:
       - orderservice
       - paymentservice
       - chatservice
+      - reviewservice
 
     networks:
       - ecommerce-network

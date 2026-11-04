@@ -50,6 +50,9 @@
             <li class="item">
               <a class="item__name" [routerLink]="['/products', item.productId]">{{ item.productName }}</a>
               <span class="item__meta">{{ unitPrice(item) | currency: 'INR' : 'symbol' : '1.0-2' }} &times; {{ item.quantity }}</span>
+              @if (order.status === 'Delivered') {
+                <a class="item__rate" [routerLink]="['/products', item.productId]" fragment="reviews">Rate &amp; review<span class="visually-hidden"> {{ item.productName }}</span></a>
+              }
               <span class="item__total">{{ lineTotal(item) | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
             </li>
           }
@@ -76,7 +79,7 @@
           @if (payment(); as p) {
             <div class="details__row">
               <dt>Payment</dt>
-              <dd>{{ p.paymentMethod }} &middot; {{ p.status }}</dd>
+              <dd>{{ paymentSummary(p) }}</dd>
             </div>
             @if (p.transactionId) {
               <div class="details__row">
@@ -91,6 +94,20 @@
           @if (canCancel()) {
             <p class="hint">This order is still pending. You can cancel it until it is confirmed.</p>
             <button app-button type="button" variant="outline" (click)="cancelOpen.set(true)">Cancel order</button>
+          }
+
+          <button
+            app-button
+            type="button"
+            [loading]="actions.reorderingNumber() === order.orderNumber"
+            (click)="actions.reorder(order)">Reorder</button>
+
+          @if (!cancelled()) {
+            <button
+              app-button
+              type="button"
+              variant="outline"
+              (click)="actions.downloadInvoice(order, payment())">Download invoice</button>
           }
 
           <a class="btn btn--outline" routerLink="/orders">Back to my orders</a>

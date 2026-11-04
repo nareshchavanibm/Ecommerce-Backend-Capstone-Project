@@ -10,8 +10,8 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx'];
 
 const TEMPLATE_CSV =
-  'Name,Description,Price,CategoryName,ImageUrl,StockQuantity,ReorderLevel\r\n' +
-  'Sample Product,Short description,499,Accessories,,10,2\r\n';
+  'Name,Description,Price,CategoryName,ImageUrl,StockQuantity,ReorderLevel,Spec:Brand,Spec:Display:Screen Size,Spec:Display:Resolution,Spec:Warranty:Warranty Period\r\n' +
+  'Sample Product,Short description,499,Accessories,,10,2,Acme,6.5 inch,2400 x 1080,1 year\r\n';
 
 @Component({
   selector: 'app-import-products',

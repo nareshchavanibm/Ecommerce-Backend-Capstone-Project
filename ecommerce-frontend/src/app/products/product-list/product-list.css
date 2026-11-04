@@ -161,10 +161,6 @@ ul {
   aspect-ratio: 4 / 3;
 }
 
-.pagination {
-  margin-top: var(--space-10);
-}
-
 /* Empty and error states */
 .state {
   display: grid;

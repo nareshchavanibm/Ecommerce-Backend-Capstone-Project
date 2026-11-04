@@ -1,3 +1,5 @@
+using ECommerce.Api;
+using ECommerce.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using OrderService.Api.Extensions;
@@ -8,7 +10,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddObservability();
+
 builder.Services.AddControllers();
+
+builder.Services.AddValidationMessage();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IOrderNotifier, OrderNotifier>();
@@ -17,6 +23,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddOrderService(builder.Configuration);
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<OrderService.Infrastructure.Data.AppDbContext>("database", tags: ["ready"]);
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
@@ -76,6 +85,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+app.UseObservability();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

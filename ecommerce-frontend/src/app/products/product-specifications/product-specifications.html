@@ -1,0 +1,40 @@
+@if (groups().length > 0) {
+  <section class="specs" aria-labelledby="specs-title">
+
+    <h2 id="specs-title" class="specs__title">Specifications</h2>
+
+    <div id="specs-list">
+    @for (group of visibleGroups(); track group.group) {
+      <div class="group">
+        <h3 class="group__title">{{ group.group }}</h3>
+
+        <table class="group__table">
+          <caption class="visually-hidden">{{ group.group }} specifications</caption>
+          <tbody>
+            @for (spec of group.items; track $index) {
+              <tr>
+                <th scope="row">{{ spec.name }}</th>
+                <td>{{ spec.value }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    </div>
+
+    @if (collapsible()) {
+      <button
+        app-button
+        type="button"
+        variant="outline"
+        aria-controls="specs-list"
+        [attr.aria-expanded]="expanded()"
+        (click)="expanded.set(!expanded())"
+      >
+        {{ expanded() ? 'Show less' : 'Show more' }}
+      </button>
+    }
+
+  </section>
+}

@@ -1,6 +1,4 @@
-<app-auth-layout headline="VERIFY YOUR EMAIL" subheadline="ONE QUICK STEP" message="Enter the 6-digit code we sent to confirm it's really you.">
-  <h1 class="auth-form__title">Verify your email</h1>
-  <p class="auth-form__subtitle">We sent a 6-digit code to {{ email }}.</p>
+<app-auth-layout headline="VERIFY YOUR EMAIL" subheadline="ONE QUICK STEP" message="Enter the 6-digit code we sent to confirm it's really you." heading="Verify your email" [subheading]="'We sent a 6-digit code to ' + email + '.'">
 
   @if (notice()) {
     <app-alert variant="info" class="auth-form__alert">{{ notice() }}</app-alert>

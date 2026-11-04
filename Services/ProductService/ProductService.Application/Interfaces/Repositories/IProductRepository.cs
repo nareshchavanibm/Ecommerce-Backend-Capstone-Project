@@ -35,5 +35,12 @@ namespace ProductService.Application.Interfaces.Repositories
         Task UpdateRangeAsync(List<Product> products);
 
         Task DeleteAsync(Product product);
+
+        Task<List<ProductSpecification>> GetSpecificationsAsync(int productId);
+
+        // Replaces the whole specification sheet of one product.
+        Task ReplaceSpecificationsAsync(int productId, List<ProductSpecification> specifications);
+
+        Task AddSpecificationsAsync(List<ProductSpecification> specifications);
     }
 }

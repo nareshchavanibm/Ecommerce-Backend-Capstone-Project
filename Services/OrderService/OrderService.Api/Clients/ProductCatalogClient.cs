@@ -7,7 +7,7 @@ namespace OrderService.Api.Clients
 {
     public sealed class ProductCatalogClient(HttpClient httpClient) : IProductCatalog
     {
-        private sealed record ProductPayload(int Id, string Name, decimal Price, bool IsActive);
+        private sealed record ProductPayload(int Id, string Name, decimal Price, bool IsActive, int? StockQuantity);
 
         public async Task<IReadOnlyDictionary<int, CatalogProduct>> GetProductsAsync(
             IEnumerable<int> productIds,
@@ -41,7 +41,7 @@ namespace OrderService.Api.Clients
 
                 return payload == null
                     ? null
-                    : new CatalogProduct(payload.Id, payload.Name, payload.Price, payload.IsActive);
+                    : new CatalogProduct(payload.Id, payload.Name, payload.Price, payload.IsActive, payload.StockQuantity);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException
                                        && !cancellationToken.IsCancellationRequested)

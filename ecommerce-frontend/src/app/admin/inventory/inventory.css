@@ -11,7 +11,3 @@
   justify-content: flex-end;
   gap: var(--space-3);
 }
-
-.pager {
-  margin-top: var(--space-6);
-}

@@ -1,5 +1,6 @@
 :host {
   display: block;
+  margin-top: var(--space-8);
 }
 
 /* Pill bar: arrows at the ends, evenly spaced numbers, filled circle for the current page */

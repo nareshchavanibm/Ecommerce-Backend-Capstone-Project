@@ -11,6 +11,12 @@ import {
   HttpInterceptorFn
 } from '@angular/common/http';
 
+import { catchError, of, switchMap } from 'rxjs';
+
+import { AuthService } from '../../auth/auth';
+
+const AUTH_CALLS = /\/api\/auth\/(login|register|refresh|logout)/;
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const platformId = inject(PLATFORM_ID);
@@ -23,13 +29,23 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     // If user is logged in, attach JWT
     if (token) {
 
-      const authReq = req.clone({
+      const send = (jwt: string) => next(req.clone({
         setHeaders: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${jwt}`
         }
-      });
+      }));
 
-      return next(authReq);
+      const auth = inject(AuthService);
+
+      // Renew first: endpoints open to guests (like the chat) would otherwise treat an expired token as signed out.
+      if (auth.isTokenExpired() && auth.hasRefreshToken() && !AUTH_CALLS.test(req.url)) {
+        return auth.refresh().pipe(
+          catchError(() => of(token)),
+          switchMap(send)
+        );
+      }
+
+      return send(token);
     }
   }
 

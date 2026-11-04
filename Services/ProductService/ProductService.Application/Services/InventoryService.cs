@@ -1,4 +1,5 @@
 using ProductService.Application.DTOs.Inventory;
+using ProductService.Application.Exceptions;
 using ProductService.Application.Interfaces.Repositories;
 using ProductService.Application.Interfaces.Services;
 using ProductService.Domain.Entities;
@@ -8,10 +9,14 @@ namespace ProductService.Application.Services
     public class InventoryService : IInventoryService
     {
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IRestockNotifier? _restockNotifier;
 
-        public InventoryService(IInventoryRepository inventoryRepository)
+        public InventoryService(
+            IInventoryRepository inventoryRepository,
+            IRestockNotifier? restockNotifier = null)
         {
             _inventoryRepository = inventoryRepository;
+            _restockNotifier = restockNotifier;
         }
 
         public async Task<InventoryResponseDto?> GetByProductIdAsync(int productId)
@@ -38,14 +43,14 @@ namespace ProductService.Application.Services
             InventoryUpdateDto request)
         {
             if (request.Quantity < 0 || request.ReorderLevel < 0)
-                throw new ArgumentException(
+                throw new BusinessRuleException(
                     "Quantity and reorder level must be non-negative.");
 
             var existingInventory =
                 await _inventoryRepository.GetByProductIdAsync(productId);
 
             if (existingInventory != null)
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Inventory already exists for this product.");
 
             var inventory = new Inventory
@@ -65,7 +70,7 @@ namespace ProductService.Application.Services
             InventoryUpdateDto request)
         {
             if (request.Quantity < 0 || request.ReorderLevel < 0)
-                throw new ArgumentException(
+                throw new BusinessRuleException(
                     "Quantity and reorder level must be non-negative.");
 
             var inventory =
@@ -74,10 +79,15 @@ namespace ProductService.Application.Services
             if (inventory == null)
                 return null;
 
+            var wasOutOfStock = inventory.Quantity <= 0;
+
             inventory.Quantity = request.Quantity;
             inventory.ReorderLevel = request.ReorderLevel;
 
             await _inventoryRepository.UpdateAsync(inventory);
+
+            if (wasOutOfStock && inventory.Quantity > 0 && _restockNotifier != null)
+                await _restockNotifier.ProductRestockedAsync(productId);
 
             return MapToResponse(inventory);
         }

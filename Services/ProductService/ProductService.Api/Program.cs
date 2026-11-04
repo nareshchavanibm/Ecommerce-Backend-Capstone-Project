@@ -1,3 +1,5 @@
+using ECommerce.Api;
+using ECommerce.Observability;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,7 +10,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddObservability();
+
 builder.Services.AddControllers();
+
+builder.Services.AddValidationMessage();
 
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -64,7 +70,14 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddProductService(builder.Configuration);
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ProductService.Infrastructure.Data.AppDbContext>("database", tags: ["ready"]);
+
 var app = builder.Build();
+
+app.UseObservability();
+
+app.UseMiddleware<ProductService.Api.Middleware.ExceptionHandlingMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

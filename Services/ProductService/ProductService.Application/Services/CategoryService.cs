@@ -1,4 +1,5 @@
 using ProductService.Application.DTOs.Categories;
+using ProductService.Application.Exceptions;
 using ProductService.Application.Interfaces.Repositories;
 using ProductService.Application.Interfaces.Services;
 using ProductService.Domain.Entities;
@@ -40,7 +41,7 @@ namespace ProductService.Application.Services
                 await _categoryRepository.ExistsByNameAsync(request.Name);
 
             if (exists)
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "A category with this name already exists.");
 
             var category = new Category
@@ -72,7 +73,7 @@ namespace ProductService.Application.Services
                     request.Name,
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "A category with this name already exists.");
             }
 
@@ -90,6 +91,10 @@ namespace ProductService.Application.Services
 
             if (category == null)
                 return false;
+
+            if (await _categoryRepository.HasProductsAsync(id))
+                throw new BusinessRuleException(
+                    "This category still has products. Move or delete them first.");
 
             await _categoryRepository.DeleteAsync(category);
 

@@ -1,0 +1,69 @@
+@if (items().length > 0) {
+  <section class="carousel" aria-roledescription="carousel" aria-label="Featured promotions">
+
+    <div class="track" [class.track--scrollable]="slider.scrollable()"
+         appSlider #slider="appSlider" [sliderInterval]="6000" [sliderClones]="items().length > 1 ? 1 : 0"
+         tabindex="0" [attr.aria-live]="slider.playing() ? 'off' : 'polite'">
+
+      @for (promo of slides(); track $index; let i = $index) {
+        @let copy = i === items().length;
+        @let hasImage = !!promo.imageUrl && !broken().has(promo.id);
+
+        <div class="slide" [class.slide--image]="hasImage"
+             role="group" aria-roledescription="slide"
+             [attr.aria-label]="copy ? null : (i + 1) + ' of ' + items().length"
+             [attr.aria-hidden]="copy ? 'true' : null"
+             [attr.inert]="copy ? '' : null">
+
+          @if (hasImage) {
+            <img class="slide__backdrop" [src]="promo.imageUrl" alt="" aria-hidden="true" draggable="false" />
+          }
+
+          <div class="slide__copy">
+            @if (promo.discountText) {
+              <span class="slide__badge">{{ promo.discountText }}</span>
+            }
+            <h2 class="slide__title">{{ promo.title }}</h2>
+            @if (promo.subtitle) {
+              <p class="slide__text">{{ promo.subtitle }}</p>
+            }
+            @if (promo.linkUrl) {
+              <a class="slide__cta" [appPromoLink]="promo.linkUrl">
+                Shop now<span class="slide__arrow" aria-hidden="true">&rarr;</span><span class="sr-only"> – {{ promo.title }}</span>
+              </a>
+            }
+          </div>
+
+          @if (hasImage) {
+            <div class="slide__media">
+              <img class="slide__img" [src]="promo.imageUrl" alt="" [attr.loading]="i === 0 ? null : 'lazy'" draggable="false"
+                   (error)="markBroken(promo.id)" />
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (items().length > 1) {
+      <div class="controls">
+        <button type="button" class="ctl" aria-label="Previous slide" (click)="slider.prev()">&#8249;</button>
+
+        <div class="dots">
+          @for (item of items(); track item.id; let i = $index) {
+            <button type="button" class="dot" [class.dot--on]="i === slider.index()"
+                    [attr.aria-label]="'Go to slide ' + (i + 1)"
+                    [attr.aria-current]="i === slider.index() ? 'true' : null"
+                    (click)="slider.goTo(i)"></button>
+          }
+        </div>
+
+        <button type="button" class="ctl" aria-label="Next slide" (click)="slider.next()">&#8250;</button>
+
+        @if (slider.canAutoplay()) {
+          <button type="button" class="ctl ctl--text" [attr.aria-pressed]="slider.userPaused()"
+                  (click)="slider.toggle()">{{ slider.userPaused() ? 'Play' : 'Pause' }}</button>
+        }
+      </div>
+    }
+  </section>
+}

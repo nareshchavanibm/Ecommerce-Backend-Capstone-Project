@@ -97,23 +97,9 @@
 
   </table>
 
-  <div class="pagination">
-    <button type="button"
-            (click)="goToPreviousPage()"
-            [disabled]="currentPage() === 1">
-      Previous
-    </button>
-
-    <span>
-      Page {{ currentPage() }} of {{ totalPages() }}
-    </span>
-
-    <button type="button"
-            (click)="goToNextPage()"
-            [disabled]="currentPage() === totalPages()">
-      Next
-    </button>
-  </div>
+  @if (totalPages() > 1) {
+    <app-pagination [page]="currentPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
+  }
 
   }
 

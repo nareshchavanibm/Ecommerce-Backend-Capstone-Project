@@ -17,5 +17,11 @@ namespace ProductService.Application.DTOs.Products
         public string CategoryName { get; set; } = string.Empty;
 
         public bool IsActive { get; set; }
+
+        // Filled from live inventory on every read; null when the product has no stock record.
+        public int? StockQuantity { get; set; }
+
+        // Only filled when a single product is fetched, not in listings.
+        public List<ProductSpecificationDto> Specifications { get; set; } = new();
     }
 }

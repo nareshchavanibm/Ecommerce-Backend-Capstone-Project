@@ -1,0 +1,126 @@
+:host {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.specs {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.specs__legend {
+  margin-bottom: var(--space-1);
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.specs__optional {
+  color: var(--color-text-muted);
+  font-weight: var(--weight-regular);
+}
+
+.specs__hint {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.specs__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  padding: var(--space-3);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.row--error {
+  border-color: var(--color-danger);
+}
+
+.row__fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.row__field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.row__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+.row__field input {
+  width: 100%;
+}
+
+.row__field input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.row__remove,
+.specs__add {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  background: var(--color-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-strong);
+  font-size: var(--text-sm);
+}
+
+.row__remove:hover:not(:disabled),
+.specs__add:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-primary-hover);
+}
+
+.row__remove {
+  align-self: end;
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.row__remove:hover:not(:disabled) {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.row__error {
+  margin: var(--space-2) 0 0;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.specs__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.specs__limit {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 672px) {
+  .row__fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr) auto;
+    align-items: start;
+  }
+}

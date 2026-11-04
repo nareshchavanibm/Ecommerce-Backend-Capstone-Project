@@ -48,11 +48,15 @@ namespace PaymentService.Api.Clients
             }
         }
 
-        public async Task MarkPaidAsync(int orderId)
+        public Task MarkPaidAsync(int orderId) => PostAsync($"internal/orders/{orderId}/mark-paid");
+
+        public Task ConfirmCashOnDeliveryAsync(int orderId) => PostAsync($"internal/orders/{orderId}/confirm-cod");
+
+        private async Task PostAsync(string path)
         {
             try
             {
-                using var response = await httpClient.PostAsync($"internal/orders/{orderId}/mark-paid", null);
+                using var response = await httpClient.PostAsync(path, null);
 
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {

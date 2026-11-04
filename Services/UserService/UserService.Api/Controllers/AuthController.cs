@@ -35,6 +35,20 @@ namespace UserService.Api.Controllers
             return Ok(response);
         }
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(RefreshRequest request)
+        {
+            return Ok(await _authService.RefreshAsync(request.RefreshToken));
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(RefreshRequest request)
+        {
+            await _authService.LogoutAsync(request.RefreshToken);
+
+            return NoContent();
+        }
+
         [Authorize]
         [HttpGet("me")]
         public IActionResult GetCurrentUser()

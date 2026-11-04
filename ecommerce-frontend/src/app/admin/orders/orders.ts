@@ -18,11 +18,13 @@ import { DatePipe } from '@angular/common';
 import { NotificationService } from '../../core/services/notifications';
 import { OrderService } from '../../core/services/order';
 import { Order } from '../../shared/models/order.model';
+import { Pagination } from '../../shared/ui/pagination/pagination';
 
 @Component({
   selector: 'app-admin-orders',
   imports: [
-    DatePipe
+    DatePipe,
+    Pagination
   ],
   templateUrl: './orders.html',
   styleUrl: './orders.css'

@@ -51,7 +51,10 @@ namespace ProductService.Infrastructure.Repositories
             {
                 query = query.Where(x =>
                     x.Name.Contains(search) ||
-                    x.Description.Contains(search));
+                    x.Description.Contains(search) ||
+                    _context.ProductSpecifications.Any(s =>
+                        s.ProductId == x.Id &&
+                        (s.Value.Contains(search) || s.Name.Contains(search))));
             }
 
             if (!string.IsNullOrWhiteSpace(category))
@@ -117,7 +120,10 @@ namespace ProductService.Infrastructure.Repositories
             {
                 query = query.Where(x =>
                     x.Name.Contains(search) ||
-                    x.Description.Contains(search));
+                    x.Description.Contains(search) ||
+                    _context.ProductSpecifications.Any(s =>
+                        s.ProductId == x.Id &&
+                        (s.Value.Contains(search) || s.Name.Contains(search))));
             }
 
             if (!string.IsNullOrWhiteSpace(category))
@@ -196,6 +202,38 @@ namespace ProductService.Infrastructure.Repositories
         public async Task DeleteAsync(Product product)
         {
             _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<ProductSpecification>> GetSpecificationsAsync(int productId)
+        {
+            return await _context.ProductSpecifications
+                .AsNoTracking()
+                .Where(x => x.ProductId == productId)
+                .OrderBy(x => x.SortOrder)
+                .ToListAsync();
+        }
+
+        public async Task ReplaceSpecificationsAsync(int productId, List<ProductSpecification> specifications)
+        {
+            var existing = await _context.ProductSpecifications
+                .Where(x => x.ProductId == productId)
+                .ToListAsync();
+
+            _context.ProductSpecifications.RemoveRange(existing);
+
+            foreach (var specification in specifications)
+            {
+                specification.ProductId = productId;
+            }
+
+            await _context.ProductSpecifications.AddRangeAsync(specifications);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddSpecificationsAsync(List<ProductSpecification> specifications)
+        {
+            await _context.ProductSpecifications.AddRangeAsync(specifications);
             await _context.SaveChangesAsync();
         }
     }

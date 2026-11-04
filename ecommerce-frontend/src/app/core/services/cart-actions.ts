@@ -27,6 +27,11 @@ export class CartActions {
 
   add(product: Product): void {
 
+    if (product.stockQuantity <= 0) {
+      this.toast.error(`${product.name} is out of stock.`);
+      return;
+    }
+
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/login']);
       return;

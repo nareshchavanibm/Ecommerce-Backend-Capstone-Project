@@ -19,6 +19,10 @@ import {
   devErrorInterceptor
 } from './core/interceptors/dev-error-interceptor';
 
+import {
+  sessionExpiredInterceptor
+} from './core/interceptors/session-expired-interceptor';
+
 export const appConfig: ApplicationConfig = {
 
   providers: [
@@ -28,6 +32,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([
         authInterceptor,
+        sessionExpiredInterceptor,
         devErrorInterceptor
       ])
     )

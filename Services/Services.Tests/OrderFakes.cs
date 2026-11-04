@@ -106,6 +106,24 @@ internal sealed class FakeOrderItemRepository(FakeOrderRepository orders) : IOrd
     public Task<IEnumerable<OrderItem>> GetByOrderIdAsync(int orderId) =>
         Task.FromResult<IEnumerable<OrderItem>>(
             orders.Orders.FirstOrDefault(x => x.Id == orderId)?.OrderItems.ToList() ?? new List<OrderItem>());
+
+    public Task<bool> HasDeliveredAsync(int userId, int productId) =>
+        Task.FromResult(orders.Orders.Any(o =>
+            o.UserId == userId &&
+            o.Status == OrderService.Domain.Enums.OrderStatus.Delivered &&
+            o.OrderItems.Any(i => i.ProductId == productId)));
+
+    public Task<IReadOnlyList<(int ProductId, int UnitsSold)>> GetTopSellingAsync(DateTime sinceUtc, int take) =>
+        Task.FromResult<IReadOnlyList<(int ProductId, int UnitsSold)>>(
+            orders.Orders
+                .Where(o => o.CreatedAt >= sinceUtc && o.Status != OrderService.Domain.Enums.OrderStatus.Cancelled)
+                .SelectMany(o => o.OrderItems)
+                .GroupBy(i => i.ProductId)
+                .Select(g => (ProductId: g.Key, UnitsSold: g.Sum(i => i.Quantity)))
+                .OrderByDescending(x => x.UnitsSold)
+                .ThenBy(x => x.ProductId)
+                .Take(take)
+                .ToList());
 }
 
 internal sealed class FakeCartRepository : ICartRepository

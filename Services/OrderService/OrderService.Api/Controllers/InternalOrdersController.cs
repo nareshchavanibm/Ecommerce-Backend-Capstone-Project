@@ -29,12 +29,27 @@ namespace OrderService.Api.Controllers
         public async Task<IActionResult> GetOrderByNumber(string orderNumber) =>
             Snapshot(await _orderService.GetOrderByNumberAsync(orderNumber.Trim().ToUpperInvariant()));
 
+        [HttpGet("purchased")]
+        public async Task<IActionResult> HasPurchased([FromQuery] int userId, [FromQuery] int productId) =>
+            Ok(new { purchased = await _orderService.HasPurchasedAsync(userId, productId) });
+
         [HttpPost("{id:int}/mark-paid")]
         public async Task<IActionResult> MarkPaid(int id)
         {
             var order = await _orderService.MarkPaidAsync(id);
 
             await _notifier.OrderPaidAsync(order);
+            await _notifier.OrderStatusChangedAsync(order);
+
+            return Ok(order);
+        }
+
+        // Cash on delivery: the order is accepted now and paid at the door, so no "payment received" notice.
+        [HttpPost("{id:int}/confirm-cod")]
+        public async Task<IActionResult> ConfirmCashOnDelivery(int id)
+        {
+            var order = await _orderService.MarkPaidAsync(id);
+
             await _notifier.OrderStatusChangedAsync(order);
 
             return Ok(order);

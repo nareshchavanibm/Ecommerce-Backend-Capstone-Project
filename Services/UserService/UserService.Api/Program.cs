@@ -1,4 +1,6 @@
 
+using ECommerce.Api;
+using ECommerce.Observability;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +13,8 @@ using UserService.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddObservability();
+
 // Controllers
 builder.Services
     .AddControllers()
@@ -18,8 +22,13 @@ builder.Services
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
+builder.Services.AddValidationMessage();
+
 // UserService dependencies
 builder.Services.AddUserService(builder.Configuration);
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
 // =========================
 // JWT Authentication
@@ -104,6 +113,8 @@ builder.Services.AddSwaggerGen(options =>
 // =========================
 
 var app = builder.Build();
+
+app.UseObservability();
 
 using (var scope = app.Services.CreateScope())
 {

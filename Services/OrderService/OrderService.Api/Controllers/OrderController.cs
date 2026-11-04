@@ -50,6 +50,14 @@ namespace OrderService.Api.Controllers
             return Ok(await _orderService.GetAllOrdersAsync());
         }
 
+        // Public and aggregated (product ids and unit counts only); no customer data.
+        [HttpGet("trending")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetTrending([FromQuery] int days = 30, [FromQuery] int take = 12)
+        {
+            return Ok(await _orderService.GetTrendingProductsAsync(days, take));
+        }
+
         [HttpGet("{orderNumber}")]
         public async Task<IActionResult> GetOrderByNumber(string orderNumber)
         {

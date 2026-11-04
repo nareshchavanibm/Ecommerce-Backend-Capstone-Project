@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using OrderService.Api.Hubs;
 using OrderService.Application.DTOs.Orders;
 using OrderService.Domain.Entities;
@@ -20,6 +21,9 @@ namespace OrderService.Api.Notifications
 
         // To admins: a payment succeeded.
         Task OrderPaidAsync(OrderResponseDto order);
+
+        // To every customer waiting for the product; their requests are then removed.
+        Task ProductRestockedAsync(int productId);
     }
 
     public record NotificationDto(int Id, string Title, string Message, string Link, DateTime CreatedAt, bool Read);
@@ -63,6 +67,51 @@ namespace OrderService.Api.Notifications
             NotifyAsync(null, order, "Payment received",
                 $"Order {order.OrderNumber} was paid ({Money(order.TotalAmount)}).",
                 $"/admin/orders/details/{order.OrderNumber}");
+
+        public async Task ProductRestockedAsync(int productId)
+        {
+            using var scope = _scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var alerts = await db.StockAlerts.Where(a => a.ProductId == productId).ToListAsync();
+
+            if (alerts.Count == 0)
+            {
+                return;
+            }
+
+            // OrderId is not meaningful for stock notifications.
+            var notifications = alerts.Select(alert => new Notification
+            {
+                UserId = alert.UserId,
+                OrderId = 0,
+                Title = "Back in stock",
+                Message = Truncate($"{alert.ProductName} is available again.", 300),
+                Link = $"/products/{productId}"
+            }).ToList();
+
+            db.Notifications.AddRange(notifications);
+            db.StockAlerts.RemoveRange(alerts);
+            await db.SaveChangesAsync();
+
+            foreach (var notification in notifications)
+            {
+                try
+                {
+                    await _hub.Clients.Group(NotificationHub.UserGroup(notification.UserId!.Value)).SendAsync(
+                        "Notification",
+                        new NotificationDto(notification.Id, notification.Title, notification.Message,
+                            notification.Link, notification.CreatedAt, false));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not push restock notification {NotificationId}.", notification.Id);
+                }
+            }
+        }
+
+        private static string Truncate(string value, int max) =>
+            value.Length <= max ? value : value[..max];
 
         private static string Money(decimal amount) =>
             "₹" + amount.ToString("N0", CultureInfo.InvariantCulture);

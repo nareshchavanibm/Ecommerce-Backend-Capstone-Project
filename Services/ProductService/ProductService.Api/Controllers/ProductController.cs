@@ -124,6 +124,15 @@ namespace ProductService.Api.Controllers
             return Ok(product);
         }
 
+        // Like GetById, but an unknown id is an empty list rather than a 404 (used while typing an id).
+        [HttpGet("lookup")]
+        public async Task<IActionResult> Lookup([FromQuery] int id)
+        {
+            var product = id > 0 ? await _productService.GetByIdAsync(id) : null;
+
+            return Ok(product == null ? Array.Empty<object>() : new object[] { product });
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(

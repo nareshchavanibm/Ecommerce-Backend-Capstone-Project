@@ -1,0 +1,51 @@
+<div class="search" (focusin)="open.set(true)" (focusout)="onFocusOut($event)" (keydown.escape)="close()">
+
+  <app-text-input
+    label="Search products"
+    placeholder="Product ID, name or specification"
+    required
+    [maxlength]="100"
+    [formControl]="searchControl" />
+
+  @if (open() && (searching() || failed() || results() !== null)) {
+    <div class="search__panel">
+
+      <p class="search__status" aria-live="polite">
+        @if (searching()) {
+          Searching...
+        } @else if (failed()) {
+          Unable to search products right now. Please try again.
+        } @else if (results(); as found) {
+          {{ found.length === 0 ? 'No products found.' : found.length + (found.length === 1 ? ' product found' : ' products found') }}
+        }
+      </p>
+
+      @if (!searching() && results(); as found) {
+        <ul class="search__list">
+          @for (product of found; track product.id) {
+            <li class="search__item">
+              <span class="search__thumb">
+                <img [src]="thumb(product)" alt="" width="40" height="40" loading="lazy" (error)="hideImage($event)" />
+              </span>
+
+              <span class="search__info">
+                <a class="search__name" [routerLink]="['/admin/products/edit', product.id]">{{ product.name }}</a>
+                <span class="search__meta">ID {{ product.id }}@if (product.categoryName) { &middot; {{ product.categoryName }} } &middot; {{ product.price | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+              </span>
+
+              @if (product.stockQuantity !== null && product.stockQuantity !== undefined) {
+                @if (product.stockQuantity <= 0) {
+                  <app-badge variant="danger">Out of stock</app-badge>
+                } @else {
+                  <app-badge variant="success">{{ product.stockQuantity }} in stock</app-badge>
+                }
+              }
+            </li>
+          }
+        </ul>
+      }
+
+    </div>
+  }
+
+</div>

@@ -51,6 +51,7 @@ export const routes: Routes = [
       { path: 'categories/add', loadComponent: () => import('./admin/categories/add/add-category').then(m => m.AddCategory) },
       { path: 'categories/edit/:id', loadComponent: () => import('./admin/categories/edit/edit-category').then(m => m.EditCategory) },
       { path: 'inventory', loadComponent: () => import('./admin/inventory/inventory').then(m => m.InventoryComponent) },
+      { path: 'promotions', loadComponent: () => import('./admin/promotions/promotions').then(m => m.AdminPromotions) },
       { path: 'orders', loadComponent: () => import('./admin/orders/orders').then(m => m.AdminOrders) },
       { path: 'orders/details/:id', loadComponent: () => import('./admin/orders/details/order-details').then(m => m.AdminOrderDetails) }
     ]

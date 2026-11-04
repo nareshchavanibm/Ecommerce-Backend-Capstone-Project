@@ -42,6 +42,14 @@
         <dt>ReorderLevel</dt>
         <dd>Optional whole number. Blank or missing columns use 2. A product is low stock at or below this number.</dd>
       </div>
+      <div class="columns__row">
+        <dt>Spec:Name <span class="columns__or">or</span> Spec:Group:Name</dt>
+        <dd>
+          Optional, as many columns as you need. The part after Spec: is the specification name,
+          for example <code>Spec:Brand</code> (shown under General) or <code>Spec:Display:Screen Size</code>
+          (shown under Display). The cell is the value; blank cells are skipped. Up to 60 per product.
+        </dd>
+      </div>
     </dl>
 
     <button app-button type="button" variant="outline" (click)="downloadTemplate()">

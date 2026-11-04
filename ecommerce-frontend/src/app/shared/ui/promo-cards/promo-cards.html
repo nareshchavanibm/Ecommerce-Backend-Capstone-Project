@@ -1,0 +1,73 @@
+<div class="slider">
+
+  <ul class="cards" [class.cards--ads]="kind() === 'ad'" [class.cards--scrollable]="slider.scrollable()"
+      appSlider #slider="appSlider" [sliderInterval]="5000" [sliderClones]="copies()"
+      tabindex="0" [attr.aria-label]="kind() === 'ad' ? 'Sponsored' : 'Offers'">
+
+    @for (promo of slides(); track $index; let i = $index) {
+      @let clone = i >= items().length;
+      @let hasImage = !!promo.imageUrl && !broken().has(promo.id);
+
+      <li class="card" [class.card--ad]="kind() === 'ad'"
+          [attr.aria-hidden]="clone ? 'true' : null" [attr.inert]="clone ? '' : null">
+
+        @if (hasImage) {
+          <div class="card__media">
+            <img class="card__backdrop" [src]="promo.imageUrl" alt="" aria-hidden="true" draggable="false" />
+            <img class="card__img" [src]="promo.imageUrl" alt="" [attr.loading]="i < 3 ? null : 'lazy'" draggable="false"
+                 (error)="markBroken(promo.id)" />
+          </div>
+        } @else {
+          <div class="card__media card__media--plain" aria-hidden="true">
+            <span class="card__big">{{ promo.discountText || (kind() === 'ad' ? 'Sponsored' : 'Offer') }}</span>
+          </div>
+        }
+
+        <div class="card__body">
+          @if (kind() === 'ad') {
+            <span class="card__tag">Ad</span>
+          } @else if (promo.discountText && hasImage) {
+            <span class="card__badge">{{ promo.discountText }}</span>
+          }
+
+          <h3 class="card__title">{{ promo.title }}</h3>
+
+          @if (promo.subtitle) {
+            <p class="card__text">{{ promo.subtitle }}</p>
+          }
+
+          @if (kind() === 'offer' && promo.promoCode) {
+            <p class="card__code">
+              Use code <code>{{ promo.promoCode }}</code>
+              <button type="button" class="card__copy" (click)="copy(promo)">
+                {{ copiedId() === promo.id ? 'Copied' : 'Copy' }}<span class="sr-only"> code {{ promo.promoCode }}</span>
+              </button>
+            </p>
+          }
+
+          @if (kind() === 'offer' && promo.endsAt) {
+            <p class="card__meta">Ends {{ promo.endsAt | date: 'mediumDate' }}</p>
+          }
+
+          @if (promo.linkUrl) {
+            <a class="card__cta" [appPromoLink]="promo.linkUrl">
+              {{ kind() === 'ad' ? 'Learn more' : 'Shop the offer' }}<span class="card__arrow" aria-hidden="true">&rarr;</span><span class="sr-only"> – {{ promo.title }}</span>
+            </a>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  @if (slider.scrollable()) {
+    <div class="nav">
+      <button type="button" class="nav__btn" aria-label="Previous" (click)="slider.prev()">&#8249;</button>
+      <button type="button" class="nav__btn" aria-label="Next" (click)="slider.next()">&#8250;</button>
+
+      @if (slider.canAutoplay()) {
+        <button type="button" class="nav__btn nav__btn--text" [attr.aria-pressed]="slider.userPaused()"
+                (click)="slider.toggle()">{{ slider.userPaused() ? 'Play' : 'Pause' }}</button>
+      }
+    </div>
+  }
+</div>

@@ -97,6 +97,7 @@
             <li>
               <app-product-card
                 [product]="product"
+                [rating]="ratings().get(product.id) ?? null"
                 [adding]="cartActions.addingId() === product.id"
                 (addToCart)="cartActions.add($event)" />
             </li>
@@ -104,7 +105,7 @@
         </ul>
 
         @if (totalPages() > 1) {
-          <app-pagination class="pagination" [page]="state().page" [totalPages]="totalPages()" (pageChange)="goToPage($event)" />
+          <app-pagination [page]="state().page" [totalPages]="totalPages()" (pageChange)="goToPage($event)" />
         }
       }
     </section>

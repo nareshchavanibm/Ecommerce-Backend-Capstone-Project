@@ -96,6 +96,20 @@ dl {
   font-size: var(--text-xl);
 }
 
+.info__rating {
+  justify-self: start;
+  min-height: 0;
+  padding: var(--space-1) 0;
+  background: none;
+  color: inherit;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.info__rating:hover:not(:disabled) {
+  background: none;
+}
+
 .info__id {
   margin: 0;
   color: var(--color-text-muted);
@@ -166,6 +180,25 @@ dl {
 
 .buy__icon {
   flex: none;
+}
+
+.info__edit {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 40px;
+  margin-top: var(--space-3);
+  padding: 0 var(--space-5);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.info__edit:hover {
+  background: var(--color-accent);
+  color: var(--color-primary-hover);
 }
 
 .buy__total {

@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
+COPY Services/Shared/ Services/Shared/
 COPY Services/ChatService/ChatService.Api/ChatService.Api.csproj Services/ChatService/ChatService.Api/
 
 RUN dotnet restore Services/ChatService/ChatService.Api/ChatService.Api.csproj

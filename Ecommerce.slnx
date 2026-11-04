@@ -3,6 +3,9 @@
   <Folder Name="/Services/Services.Tests/">
     <Project Path="Services/Services.Tests/Services.Tests.csproj" />
   </Folder>
+  <Folder Name="/Services/Services.IntegrationTests/">
+    <Project Path="Services/Services.IntegrationTests/Services.IntegrationTests.csproj" />
+  </Folder>
   <Folder Name="/Services/ChatService/">
     <Project Path="Services/ChatService/ChatService.Api/ChatService.Api.csproj" />
   </Folder>
@@ -23,6 +26,9 @@
     <Project Path="Services/ProductService/ProductService.Application/ProductService.Application.csproj" />
     <Project Path="Services/ProductService/ProductService.Domain/ProductService.Domain.csproj" />
     <Project Path="Services/ProductService/ProductService.Infrastructure/ProductService.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Services/ReviewService/">
+    <Project Path="Services/ReviewService/ReviewService.Api/ReviewService.Api.csproj" />
   </Folder>
   <Folder Name="/Services/UserService/">
     <Project Path="Services/UserService/UserService.Api/UserService.Api.csproj" />

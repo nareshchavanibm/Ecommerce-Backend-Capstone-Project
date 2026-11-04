@@ -55,6 +55,10 @@
 .actions { grid-area: actions; }
 .search { grid-area: search; }
 
+.bar--no-search {
+  grid-template-areas: 'toggle brand actions';
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -409,6 +413,11 @@
     gap: var(--space-6);
     min-height: var(--header-height);
     padding-block: 0;
+  }
+
+  .bar--no-search {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'brand menu actions';
   }
 
   .bar__toggle {

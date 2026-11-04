@@ -73,6 +73,12 @@
   </ul>
 </section>
 
+@if (banners().length > 0) {
+  <section class="section container" aria-label="Promotions">
+    <app-promo-carousel [items]="banners()" />
+  </section>
+}
+
 @if (errorMessage()) {
   <section class="section container">
     <div class="state" role="alert">
@@ -81,6 +87,26 @@
     </div>
   </section>
 } @else {
+
+  @if (offers().length > 0) {
+    <section class="section container" aria-labelledby="offers-title">
+      <header class="section__head">
+        <h2 id="offers-title" class="section__title">Offers for you</h2>
+      </header>
+
+      <app-promo-cards [items]="offers()" kind="offer" />
+    </section>
+  }
+
+  @if (ads().length > 0) {
+    <section class="section container" aria-labelledby="ads-title">
+      <header class="section__head">
+        <h2 id="ads-title" class="section__title">Sponsored</h2>
+      </header>
+
+      <app-promo-cards [items]="ads()" kind="ad" />
+    </section>
+  }
 
   <section id="categories" class="section container" aria-labelledby="categories-title">
     <header class="section__head">
@@ -128,6 +154,23 @@
       <p class="state__text">Categories will appear here once they are added.</p>
     }
   </section>
+
+  @if (trending().length > 0) {
+    <section class="section container" aria-labelledby="trending-title">
+      <header class="section__head">
+        <h2 id="trending-title" class="section__title">Trending now</h2>
+        <a class="section__link" routerLink="/products">View all</a>
+      </header>
+
+      <ul class="product-grid">
+        @for (product of trending(); track product.id) {
+          <li>
+            <app-product-card [product]="product" [adding]="cartActions.addingId() === product.id" (addToCart)="cartActions.add($event)" />
+          </li>
+        }
+      </ul>
+    </section>
+  }
 
   <section class="section container" aria-labelledby="featured-title">
     <header class="section__head">

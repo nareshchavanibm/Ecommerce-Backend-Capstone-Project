@@ -40,6 +40,9 @@ export class Navbar implements OnInit {
 
   protected readonly menuOpen = signal(false);
 
+  // Admin pages have their own product search.
+  protected readonly inAdmin = signal(this.router.url.startsWith('/admin'));
+
   protected readonly megaOpen = signal(false);
 
   protected readonly categories = signal<Category[]>([]);
@@ -103,7 +106,8 @@ export class Navbar implements OnInit {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
+    ).subscribe(event => {
+      this.inAdmin.set((event as NavigationEnd).urlAfterRedirects.startsWith('/admin'));
       this.menuOpen.set(false);
       this.megaOpen.set(false);
       this.searchOpen.set(false);

@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
+COPY Services/Shared/ Services/Shared/
 COPY ApiGateway/ApiGateway.csproj ApiGateway/
 
 RUN dotnet restore ApiGateway/ApiGateway.csproj

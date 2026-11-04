@@ -1,0 +1,136 @@
+<div class="promotions-container">
+
+  <div class="header">
+    <div>
+      <h2>Promotions</h2>
+      <p>Banners, offers and ads shown on the storefront home page. Trending products are picked automatically from the last 30 days of sales.</p>
+    </div>
+
+    <button type="button" (click)="openCreate()">Add promotion</button>
+  </div>
+
+  @if (loading()) {
+    <p aria-busy="true">Loading promotions...</p>
+  } @else if (errorMessage()) {
+    <p class="error-message" role="alert">{{ errorMessage() }}</p>
+    <button type="button" (click)="load()">Try again</button>
+  } @else if (promotions().length === 0) {
+    <p>No promotions yet. Add a banner, offer or ad to show it to shoppers.</p>
+  } @else {
+    <table>
+      <caption class="sr-only">Promotions</caption>
+      <thead>
+        <tr>
+          <th scope="col">Title</th>
+          <th scope="col">Type</th>
+          <th scope="col">Status</th>
+          <th scope="col">Schedule</th>
+          <th scope="col">Order</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (promotion of promotions(); track promotion.id) {
+          <tr>
+            <td>
+              <strong>{{ promotion.title }}</strong>
+              @if (promotion.discountText) {
+                <span class="muted"> · {{ promotion.discountText }}</span>
+              }
+            </td>
+            <td>{{ promotion.type }}</td>
+            <td><span class="status" [attr.data-status]="status(promotion)">{{ status(promotion) }}</span></td>
+            <td>
+              @if (promotion.startsAt || promotion.endsAt) {
+                {{ promotion.startsAt ? (promotion.startsAt | date: 'MMM d, y') : 'Now' }}
+                &ndash;
+                {{ promotion.endsAt ? (promotion.endsAt | date: 'MMM d, y') : 'No end' }}
+              } @else {
+                Always
+              }
+            </td>
+            <td>{{ promotion.displayOrder }}</td>
+            <td>
+              <button type="button" (click)="openEdit(promotion)">Edit<span class="sr-only"> {{ promotion.title }}</span></button>
+              <button type="button" (click)="askDelete(promotion)">Delete<span class="sr-only"> {{ promotion.title }}</span></button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<app-dialog [heading]="editing() ? 'Edit promotion' : 'Add promotion'" [(open)]="formOpen">
+
+  @if (formError()) {
+    <p class="error-message" role="alert">{{ formError() }}</p>
+  }
+
+  <form id="promotion-form" class="form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+    <app-select label="Type" formControlName="type" [options]="typeOptions" required />
+
+    <app-text-input label="Title" formControlName="title" [maxlength]="120" required
+                    [errorMessages]="{ required: 'Enter a title.' }" />
+
+    <app-text-input label="Subtitle" formControlName="subtitle" [maxlength]="300" />
+
+    <app-text-input label="Image URL" formControlName="imageUrl" [maxlength]="500"
+                    helperText="Optional. A direct picture address (ending in .jpg, .png or .webp), not a web page or ad link. Right-click an image and choose Copy image address."
+                    [errorMessages]="{ pattern: 'Must start with http:// or https://' }" />
+
+    <app-text-input label="Link" formControlName="linkUrl" [maxlength]="500"
+                    helperText="Where it goes when clicked, e.g. /products?category=Shoes or https://example.com"
+                    [errorMessages]="{ pattern: 'Use a path starting with / or an http(s) URL.' }" />
+
+    <div class="row">
+      <app-text-input label="Discount text" formControlName="discountText" [maxlength]="50" placeholder="20% OFF" />
+      <app-text-input label="Promo code" formControlName="promoCode" [maxlength]="50" />
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label for="startsAt">Starts <span class="optional">(optional)</span></label>
+        <input id="startsAt" type="datetime-local" formControlName="startsAt" />
+      </div>
+
+      <div class="form-group">
+        <label for="endsAt">Ends <span class="optional">(optional)</span></label>
+        <input id="endsAt" type="datetime-local" formControlName="endsAt"
+               [attr.aria-invalid]="form.hasError('dateRange') ? 'true' : null"
+               [attr.aria-describedby]="form.hasError('dateRange') ? 'range-error' : null" />
+      </div>
+    </div>
+
+    @if (form.hasError('dateRange')) {
+      <p id="range-error" class="field-error" role="alert">The end must be after the start.</p>
+    }
+
+    <div class="form-group">
+      <label for="displayOrder">Display order</label>
+      <input id="displayOrder" type="number" min="0" max="9999" formControlName="displayOrder"
+             [attr.aria-invalid]="form.controls.displayOrder.invalid && form.controls.displayOrder.touched ? 'true' : null" />
+      @if (form.controls.displayOrder.invalid && form.controls.displayOrder.touched) {
+        <span class="field-error">Enter a number from 0 to 9999. Lower numbers show first.</span>
+      }
+    </div>
+
+    <app-checkbox formControlName="isActive">Show on the storefront</app-checkbox>
+  </form>
+
+  <ng-container dialog-footer>
+    <button app-button type="button" variant="outline" (click)="formOpen.set(false)">Cancel</button>
+    <button app-button type="submit" form="promotion-form" [loading]="saving()">Save</button>
+  </ng-container>
+</app-dialog>
+
+<app-dialog heading="Delete this promotion?" [(open)]="deleteOpen">
+  <p>"{{ deleteTarget()?.title }}" will be removed from the storefront. This cannot be undone.</p>
+
+  <ng-container dialog-footer>
+    <button app-button type="button" variant="outline" (click)="deleteOpen.set(false)">Keep it</button>
+    <button app-button type="button" [loading]="deleting()" (click)="confirmDelete()">Delete</button>
+  </ng-container>
+</app-dialog>

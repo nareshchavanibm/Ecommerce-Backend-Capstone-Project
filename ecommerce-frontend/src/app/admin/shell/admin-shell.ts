@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../../auth/auth';
+import { AdminProductSearch } from '../product-search/product-search';
 
 interface NavChild {
   label: string;
@@ -19,7 +20,7 @@ interface NavItem {
 
 @Component({
   selector: 'app-admin-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, AdminProductSearch],
   templateUrl: './admin-shell.html',
   styleUrl: './admin-shell.css'
 })
@@ -41,6 +42,7 @@ export class AdminShell {
     },
     { label: 'Categories', link: '/admin/categories', icon: 'M4 4h7l9 9-7 7-9-9V4zM8 8h.01' },
     { label: 'Inventory', link: '/admin/inventory', icon: 'M3 9l9-5 9 5v10H3V9zM9 19v-6h6v6' },
-    { label: 'Orders', link: '/admin/orders', icon: 'M3 4h2.5l2 11h10l2-8H7M9.5 19.5h.01M16.5 19.5h.01' }
+    { label: 'Orders', link: '/admin/orders', icon: 'M3 4h2.5l2 11h10l2-8H7M9.5 19.5h.01M16.5 19.5h.01' },
+    { label: 'Promotions', link: '/admin/promotions', icon: 'M3 11v2l11 4V7L3 11zM14 8.5a4 4 0 010 7M6 14l1.5 5h2.5l-1-4' }
   ];
 }

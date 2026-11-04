@@ -163,12 +163,16 @@
                 </div>
 
                 <p class="card__text">
-                  Payments are handled by the store&rsquo;s payment service. No card details are entered or stored on this page.
+                  @if (method.value === 'CashOnDelivery') {
+                    You will pay the order total in cash when your order is delivered. Nothing is charged now.
+                  } @else {
+                    Payments are handled by the store&rsquo;s payment service. No card details are entered or stored on this page.
+                  }
                 </p>
               </section>
 
               <button app-button type="submit" class="submit" [loading]="stage() === 'processing'">
-                {{ order() ? 'Pay for order ' + order()!.orderNumber : 'Place order' }} &middot; {{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}
+                {{ method.value === 'CashOnDelivery' ? (order() ? 'Confirm order ' + order()!.orderNumber : 'Place order') : (order() ? 'Pay for order ' + order()!.orderNumber : 'Place order') }} &middot; {{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}
               </button>
 
               <a class="back" routerLink="/cart">Back to cart</a>

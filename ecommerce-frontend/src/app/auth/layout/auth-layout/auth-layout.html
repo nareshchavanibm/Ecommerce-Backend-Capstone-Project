@@ -13,7 +13,19 @@
     />
 
     <section class="form-side" id="auth-main">
+      <a class="home-link" routerLink="/home" aria-label="Back to home" title="Home">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path d="M4 11l8-7 8 7M6 10v10h4v-6h4v6h4V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </a>
+
       <div class="form-wrap">
+        <h1 class="form-title">{{ heading() }}</h1>
+
+        @if (subheading()) {
+          <p class="form-subtitle">{{ subheading() }}</p>
+        }
+
         <ng-content />
       </div>
 

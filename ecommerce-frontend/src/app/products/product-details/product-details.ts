@@ -1,4 +1,4 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DOCUMENT } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
@@ -10,8 +10,11 @@ import { CartActions } from '../../core/services/cart-actions';
 import { CartService } from '../../core/services/cart';
 import { InventoryService } from '../../core/services/inventory';
 import { ProductService } from '../../core/services/product';
+import { StockAlerts } from '../../core/services/stock-alerts';
+import { ReviewService } from '../../core/services/review';
 import { Inventory } from '../../shared/models/inventory.model';
 import { Product } from '../../shared/models/product.model';
+import { RatingSummary } from '../../shared/models/review.model';
 import { Alert } from '../../shared/ui/alert/alert';
 import { Badge } from '../../shared/ui/badge/badge';
 import { Breadcrumbs, Crumb } from '../../shared/ui/breadcrumbs/breadcrumbs';
@@ -20,8 +23,11 @@ import { Dialog } from '../../shared/ui/dialog/dialog';
 import { ProductCard } from '../../shared/ui/product-card/product-card';
 import { QuantityStepper } from '../../shared/ui/quantity-stepper/quantity-stepper';
 import { Skeleton } from '../../shared/ui/skeleton/skeleton';
+import { StarRating } from '../../shared/ui/star-rating/star-rating';
 import { ToastService } from '../../shared/ui/toast/toast.service';
 import { productImageUrl } from '../../shared/utils/product-image';
+import { ProductReviews } from '../product-reviews/product-reviews';
+import { ProductSpecifications } from '../product-specifications/product-specifications';
 
 const RELATED_COUNT = 4;
 
@@ -41,8 +47,11 @@ interface ProductExtras {
     Button,
     Dialog,
     ProductCard,
+    ProductReviews,
+    ProductSpecifications,
     QuantityStepper,
-    Skeleton
+    Skeleton,
+    StarRating
   ],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css'
@@ -65,9 +74,19 @@ export class ProductDetails {
 
   private readonly title = inject(Title);
 
+  private readonly document = inject(DOCUMENT);
+
+  private readonly reviewService = inject(ReviewService);
+
   protected readonly cartActions = inject(CartActions);
 
+  protected readonly alerts = inject(StockAlerts);
+
   protected readonly product = signal<Product | null>(null);
+
+  protected readonly rating = signal<RatingSummary | null>(null);
+
+  protected readonly ratings = signal<Map<number, RatingSummary>>(new Map());
 
   protected readonly inventory = signal<Inventory | null>(null);
 
@@ -100,18 +119,26 @@ export class ProductDetails {
   protected readonly total = computed(() => (this.product()?.price ?? 0) * this.quantity());
 
   // Stock is only known for signed-in users; never guessed otherwise.
+  // Live inventory (signed-in users) wins over the stock sent with the product.
+  private readonly knownStock = computed(() => {
+
+    const stock = this.inventory()?.stockQuantity ?? this.product()?.stockQuantity;
+
+    return typeof stock === 'number' ? stock : null;
+  });
+
   protected readonly maxQuantity = computed(() => {
 
-    const stock = this.inventory()?.stockQuantity;
+    const stock = this.knownStock();
 
-    return typeof stock === 'number' && stock > 0 ? stock : null;
+    return stock !== null && stock > 0 ? stock : null;
   });
 
   protected readonly outOfStock = computed(() => {
 
-    const stock = this.inventory()?.stockQuantity;
+    const stock = this.knownStock();
 
-    return typeof stock === 'number' && stock <= 0;
+    return stock !== null && stock <= 0;
   });
 
   protected readonly crumbs = computed<Crumb[]>(() => {
@@ -172,10 +199,29 @@ export class ProductDetails {
     });
   }
 
+  protected scrollToReviews(): void {
+    this.document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Links such as "Rate & review" on an order land here with #reviews.
+  protected onSummary(summary: RatingSummary): void {
+
+    this.rating.set(summary);
+
+    if (!this.scrolledToFragment && this.route.snapshot.fragment === 'reviews') {
+      this.scrolledToFragment = true;
+      this.scrollToReviews();
+    }
+  }
+
+  private scrolledToFragment = false;
+
   private resetState(): void {
     this.loading.set(true);
     this.errorMessage.set('');
     this.product.set(null);
+    this.rating.set(null);
+    this.ratings.set(new Map());
     this.inventory.set(null);
     this.related.set([]);
     this.quantity.set(1);
@@ -227,6 +273,9 @@ export class ProductDetails {
 
     this.inventory.set(extras.inventory);
     this.related.set(extras.related);
+
+    this.reviewService.getSummaries(extras.related.map(item => item.id))
+      .subscribe(summaries => this.ratings.set(summaries));
 
     const stock = extras.inventory?.stockQuantity;
 

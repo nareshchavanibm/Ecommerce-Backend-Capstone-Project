@@ -1,0 +1,169 @@
+<section id="reviews" class="reviews" aria-labelledby="reviews-title">
+
+  <h2 id="reviews-title" class="reviews__title">Ratings &amp; reviews</h2>
+
+  @if (errorMessage() && !data()) {
+    <app-alert variant="error">{{ errorMessage() }}</app-alert>
+    <button app-button type="button" variant="outline" (click)="loadReviews()">Try again</button>
+  } @else if (!data()) {
+    <div aria-busy="true" aria-label="Loading reviews" class="reviews__skeleton">
+      <app-skeleton width="30%" height="2rem" />
+      <app-skeleton shape="block" height="120px" />
+    </div>
+  } @else if (data(); as page) {
+
+    <div class="overview">
+
+      <div class="overview__score">
+        @if (page.summary.count > 0) {
+          <p class="overview__value" [attr.data-band]="band()">
+            {{ page.summary.average | number: '1.1-1' }}<span class="overview__of"> out of 5</span>
+          </p>
+          <app-star-rating [value]="page.summary.average" [count]="page.summary.count" size="lg" showLabel />
+        } @else {
+          <p class="overview__empty">No reviews yet.</p>
+        }
+      </div>
+
+      @if (page.summary.count > 0) {
+        <ul class="bars" aria-label="Reviews by rating">
+          @for (level of levels; track level) {
+            <li class="bars__row" [attr.data-band]="level">
+              <span class="bars__label">{{ level }} star</span>
+              <span class="bars__track" aria-hidden="true">
+                <span class="bars__fill" [style.width.%]="percent(level)"></span>
+              </span>
+              <span class="bars__count">{{ page.summary.distribution[level - 1] }}<span class="visually-hidden"> reviews with {{ level }} stars</span></span>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (!isAdmin()) {
+        <div class="overview__action">
+          @if (!authService.isLoggedIn()) {
+            <p class="note">
+              <a routerLink="/login">Log in</a> to review products you have received.
+            </p>
+          } @else if (myReview()) {
+            <p class="note">You reviewed this product.</p>
+            <button app-button type="button" variant="outline" (click)="openForm()">Edit your review</button>
+          } @else if (canReview()) {
+            <p class="note">Share what you think with other customers.</p>
+            <button app-button type="button" (click)="openForm(null)">Write a review</button>
+          } @else {
+            <p class="note">Only customers who have received this product can review it.</p>
+          }
+        </div>
+      }
+    </div>
+
+    @if (formOpen()) {
+      <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate aria-labelledby="review-form-title">
+
+        <h3 id="review-form-title" class="form__title">{{ myReview() ? 'Edit your review' : 'Write a review' }}</h3>
+
+        @if (formError()) {
+          <app-alert variant="error">{{ formError() }}</app-alert>
+        }
+
+        <app-rating-input formControlName="rating" label="Your rating (required)" />
+
+        <app-text-input
+          label="Review title"
+          formControlName="title"
+          [maxlength]="maxTitle"
+          placeholder="Sum it up in a few words" />
+
+        <div class="area" [class.area--error]="bodyError">
+          <label class="area__label" for="review-body">
+            Your review <span class="area__optional">(optional)</span>
+          </label>
+
+          <textarea
+            id="review-body"
+            class="area__input"
+            rows="6"
+            formControlName="body"
+            placeholder="What did you like or dislike? How did you use it?"
+            [attr.aria-invalid]="bodyError ? 'true' : null"
+            aria-describedby="review-body-count review-body-error"></textarea>
+
+          <div class="area__meta">
+            <p id="review-body-error" class="area__error" aria-live="polite">{{ bodyError }}</p>
+            <p id="review-body-count" class="area__count" [class.area__count--over]="words() > maxWords">
+              {{ words() }} / {{ maxWords }} words
+            </p>
+          </div>
+        </div>
+
+        <div class="form__actions">
+          <button app-button type="submit" [loading]="saving()">{{ myReview() ? 'Save changes' : 'Submit review' }}</button>
+          <button app-button type="button" variant="outline" [disabled]="saving()" (click)="closeForm()">Cancel</button>
+        </div>
+      </form>
+    }
+
+    @if (page.totalItems > 0) {
+
+      <div class="list-head">
+        <h3 class="list-head__title">{{ page.totalItems }} {{ page.totalItems === 1 ? 'review' : 'reviews' }}</h3>
+        <app-select class="list-head__sort" label="Sort by" [options]="sortOptions" [formControl]="sort" />
+      </div>
+
+      <ul class="list" [attr.aria-busy]="loading() ? 'true' : null">
+        @for (review of page.items; track review.id) {
+          <li class="review">
+            <div class="review__head">
+              <app-star-rating [value]="review.rating" showLabel />
+              @if (review.title) {
+                <h4 class="review__title">{{ review.title }}</h4>
+              }
+            </div>
+
+            <p class="review__meta">
+              <span class="review__name">{{ review.reviewerName }}</span>
+              <span class="review__badge">Verified purchase</span>
+              @if (review.isMine) {
+                <span class="review__badge review__badge--mine">Your review</span>
+              }
+              <time [attr.datetime]="review.createdAt">{{ review.createdAt | date: 'mediumDate' }}</time>
+              @if (review.updatedAt) {
+                <span>(edited)</span>
+              }
+            </p>
+
+            @if (review.body) {
+              <p class="review__body">{{ review.body }}</p>
+            }
+
+            @if (review.isMine || isAdmin()) {
+              <div class="review__actions">
+                @if (review.isMine) {
+                  <button type="button" class="link" (click)="openForm(review)">Edit</button>
+                }
+                <button type="button" class="link link--danger" (click)="deleteTarget.set(review)">Delete</button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (totalPages() > 1) {
+        <app-pagination [page]="page.page" [totalPages]="totalPages()" (pageChange)="goToPage($event)" />
+      }
+    }
+  }
+</section>
+
+<app-dialog
+  heading="Delete this review?"
+  [open]="!!deleteTarget()"
+  (openChange)="!$event && deleteTarget.set(null)">
+  <p>This review will be removed permanently.</p>
+
+  <ng-container dialog-footer>
+    <button app-button type="button" variant="outline" (click)="deleteTarget.set(null)">Keep review</button>
+    <button app-button type="button" [loading]="deleting()" (click)="confirmDelete()">Delete review</button>
+  </ng-container>
+</app-dialog>

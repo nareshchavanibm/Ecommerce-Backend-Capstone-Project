@@ -186,8 +186,8 @@ namespace ChatService.Api.Agents
 
         public JsonObject Definition => ToolSchema.Function(
             Name,
-            "List the signed-in customer's most recent orders. Use when they do not know the order number.",
-            new JsonObject());
+            "List the signed-in customer's most recent orders, optionally only those with one status. Use when they do not know the order number.",
+            new JsonObject { ["status"] = ToolSchema.String("Optional status filter: Pending, Confirmed, Processing, Shipped, Delivered or Cancelled.") });
 
         public async Task<string> ExecuteAsync(JsonObject arguments, AgentContext context, CancellationToken cancellationToken)
         {
@@ -203,8 +203,11 @@ namespace ChatService.Api.Agents
                 return JsonSerializer.Serialize(Array.Empty<OrderCard>());
             }
 
+            var status = arguments["status"]?.ToString();
+
             var cards = orders.Value.EnumerateArray()
                 .Select(OrderLookupClient.ToCard)
+                .Where(o => string.IsNullOrWhiteSpace(status) || string.Equals(o.Status, status.Trim(), StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(o => o.OrderDate)
                 .Take(5)
                 .ToList();
@@ -420,6 +423,161 @@ namespace ChatService.Api.Agents
                 recent
             });
         }
+    }
+
+    public class GetProductInventoryTool : IAgentTool
+    {
+        private readonly IHttpClientFactory _httpFactory;
+        private readonly ServiceUrlOptions _services;
+
+        public GetProductInventoryTool(IHttpClientFactory httpFactory, IOptions<ServiceUrlOptions> services)
+        {
+            _httpFactory = httpFactory;
+            _services = services.Value;
+        }
+
+        public string Name => "get_product_inventory";
+
+        public IReadOnlyCollection<ChatRole> Roles => ToolRoles.AdminOnly;
+
+        public JsonObject Definition => ToolSchema.Function(
+            Name,
+            "Admin only. Get stock quantity, reorder level and low-stock flag for products whose name matches the query.",
+            new JsonObject { ["product_name"] = ToolSchema.String("Product name or part of it, e.g. 'gaming laptop'.") },
+            "product_name");
+
+        public async Task<string> ExecuteAsync(JsonObject arguments, AgentContext context, CancellationToken cancellationToken)
+        {
+            if (context.Role != ChatRole.Admin)
+            {
+                return ToolSchema.Error("not_allowed");
+            }
+
+            var words = (arguments["product_name"]?.GetValue<string>() ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (words.Length == 0)
+            {
+                return ToolSchema.Error("product_name_required");
+            }
+
+            var rows = await InventoryFeed.GetAsync(_httpFactory, _services, context, cancellationToken);
+
+            if (rows is null)
+            {
+                return ToolSchema.Error("inventory_unavailable");
+            }
+
+            var matches = rows
+                .Where(i => words.All(w => i.name.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                .Take(5)
+                .ToList();
+
+            return matches.Count == 0
+                ? ToolSchema.Error("no_matching_product")
+                : JsonSerializer.Serialize(matches);
+        }
+    }
+
+    internal record InventoryRow(string name, int quantity, int reorderLevel, bool isLowStock);
+
+    internal static class InventoryFeed
+    {
+        // Read-only view of ProductService inventory; the database is never queried directly.
+        public static async Task<List<InventoryRow>?> GetAsync(
+            IHttpClientFactory httpFactory,
+            ServiceUrlOptions services,
+            AgentContext context,
+            CancellationToken cancellationToken)
+        {
+            var http = httpFactory.CreateClient("catalog");
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{services.ProductServiceUrl.TrimEnd('/')}/api/Inventory");
+
+            if (!string.IsNullOrEmpty(context.BearerToken))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.BearerToken);
+            }
+
+            using var response = await http.SendAsync(request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            using var doc = await JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(cancellationToken),
+                cancellationToken: cancellationToken);
+
+            return doc.RootElement.EnumerateArray()
+                .Select(i => new InventoryRow(
+                    i.GetProperty("productName").GetString() ?? string.Empty,
+                    i.GetProperty("quantity").GetInt32(),
+                    i.GetProperty("reorderLevel").GetInt32(),
+                    i.GetProperty("isLowStock").GetBoolean()))
+                .ToList();
+        }
+    }
+
+    public class ListInventoryTool : IAgentTool
+    {
+        private readonly IHttpClientFactory _httpFactory;
+        private readonly ServiceUrlOptions _services;
+
+        public ListInventoryTool(IHttpClientFactory httpFactory, IOptions<ServiceUrlOptions> services)
+        {
+            _httpFactory = httpFactory;
+            _services = services.Value;
+        }
+
+        public string Name => "list_inventory";
+
+        public IReadOnlyCollection<ChatRole> Roles => ToolRoles.AdminOnly;
+
+        public JsonObject Definition => ToolSchema.Function(
+            Name,
+            "Admin only. List products from live inventory filtered by reorder level, quantity or low-stock status. Use for questions like 'items with reorder level less than 10' or 'what is low on stock'.",
+            new JsonObject
+            {
+                ["reorder_level_below"] = ToolSchema.Number("Only products whose reorder level is strictly less than this."),
+                ["quantity_below"] = ToolSchema.Number("Only products whose stock quantity is strictly less than this."),
+                ["low_stock_only"] = new JsonObject { ["type"] = "boolean", ["description"] = "Only products at or below their reorder level." },
+                ["limit"] = ToolSchema.Number("Max products to return, 1 to 50. Default 20.")
+            });
+
+        public async Task<string> ExecuteAsync(JsonObject arguments, AgentContext context, CancellationToken cancellationToken)
+        {
+            if (context.Role != ChatRole.Admin)
+            {
+                return ToolSchema.Error("not_allowed");
+            }
+
+            var rows = await InventoryFeed.GetAsync(_httpFactory, _services, context, cancellationToken);
+
+            if (rows is null)
+            {
+                return ToolSchema.Error("inventory_unavailable");
+            }
+
+            var reorderBelow = ReadInt(arguments, "reorder_level_below");
+            var quantityBelow = ReadInt(arguments, "quantity_below");
+            var lowOnly = arguments["low_stock_only"] is JsonValue b && b.TryGetValue<bool>(out var flag) && flag;
+            var limit = Math.Clamp(ReadInt(arguments, "limit") ?? 20, 1, 50);
+
+            var matches = rows
+                .Where(i => reorderBelow is null || i.reorderLevel < reorderBelow)
+                .Where(i => quantityBelow is null || i.quantity < quantityBelow)
+                .Where(i => !lowOnly || i.isLowStock)
+                .OrderBy(i => i.reorderLevel)
+                .ThenBy(i => i.name)
+                .ToList();
+
+            return JsonSerializer.Serialize(new { totalMatches = matches.Count, items = matches.Take(limit) });
+        }
+
+        private static int? ReadInt(JsonObject arguments, string name) =>
+            arguments[name] is JsonValue v && v.TryGetValue<decimal>(out var n) ? (int)n : null;
     }
 
     public class SearchAdminHelpTool : IAgentTool

@@ -88,6 +88,10 @@
 
   </table>
 
+  @if (totalPages() > 1) {
+    <app-pagination [page]="currentPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
+  }
+
   }
 
 </div>
