@@ -168,7 +168,12 @@ namespace ProductService.Infrastructure.Repositories
 
             var totalItems = await query.CountAsync();
 
-            var products = await query
+            // OrderBy would discard the requested sort, so use Id only as a tiebreaker.
+            var ordered = string.IsNullOrWhiteSpace(sortBy) || (sortBy.ToLower() != "name" && sortBy.ToLower() != "price")
+                ? query.OrderBy(p => p.Id)
+                : ((IOrderedQueryable<Product>)query).ThenBy(p => p.Id);
+
+            var products = await ordered
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

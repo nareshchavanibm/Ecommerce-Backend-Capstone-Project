@@ -1,4 +1,4 @@
-import { Component, booleanAttribute, inject, input, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DoCheck, booleanAttribute, inject, input, signal } from '@angular/core';
 import { ControlValueAccessor, NgControl } from '@angular/forms';
 
 let nextId = 0;
@@ -19,7 +19,7 @@ const DEFAULT_MESSAGES: Record<string, string> = {
   templateUrl: './text-input.html',
   styleUrl: './text-input.css'
 })
-export class TextInput implements ControlValueAccessor {
+export class TextInput implements ControlValueAccessor, DoCheck {
 
   readonly label = input.required<string>();
 
@@ -60,9 +60,23 @@ export class TextInput implements ControlValueAccessor {
 
   private onTouched: () => void = () => {};
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  private wasTouched = false;
+
   constructor() {
     if (this.control) {
       this.control.valueAccessor = this;
+    }
+  }
+
+  // markAllAsTouched() on submit changes no input or event here, so re-render when it happens.
+  ngDoCheck(): void {
+    const touched = !!this.control?.touched;
+
+    if (touched !== this.wasTouched) {
+      this.wasTouched = touched;
+      this.cdr.markForCheck();
     }
   }
 

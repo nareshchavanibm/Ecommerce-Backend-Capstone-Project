@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+        - name: apigateway
+          image: ghcr.io/REPO_OWNER/ecommerce-apigateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: Cors__AllowedOrigins__0
+              valueFrom:
+                configMapKeyRef: { name: ecommerce-config, key: CORS_ALLOWED_ORIGIN }
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_KEY }
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_ISSUER }
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_AUDIENCE }
+          startupProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 384Mi }
+---
+# TLS terminates at the cloud load balancer or an ingress in front of this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: apigateway
+spec:
+  selector:
+    app: apigateway
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

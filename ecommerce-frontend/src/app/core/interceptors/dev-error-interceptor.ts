@@ -37,6 +37,11 @@ export const devErrorInterceptor: HttpInterceptorFn = (req, next) => {
 
         const path = req.url.replace(/^https?:\/\/[^/]+/, '');
 
+        // An expired session is reported by the login page notice, not as an API error.
+        if (error.status === 401 && (req.headers.has('Authorization') || path.startsWith('/api/auth/refresh'))) {
+          return;
+        }
+
         // A product without a stock record is a normal state; the pages handle it.
         if (error.status === 404 && req.method === 'GET' && /^\/api\/inventory\/\d+$/.test(path)) {
           return;

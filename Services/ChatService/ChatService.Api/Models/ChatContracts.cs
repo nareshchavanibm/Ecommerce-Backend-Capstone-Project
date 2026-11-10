@@ -67,6 +67,8 @@ namespace ChatService.Api.Models
 
         public OrderCard? Order { get; set; }
 
+        public List<OrderCard> Orders { get; set; } = new();
+
         // True when the customer should be pointed to a human.
         public bool Escalate { get; set; }
 

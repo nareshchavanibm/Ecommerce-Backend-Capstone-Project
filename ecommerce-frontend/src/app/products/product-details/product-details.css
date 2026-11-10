@@ -29,13 +29,14 @@ dl {
   aspect-ratio: 1;
   padding: 0;
   overflow: hidden;
-  background: var(--color-bg-subtle);
+  background: #fff;
   color: var(--color-border-strong);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
-.gallery__main img {
+/* Fixed square frame filled edge to edge; the enlarge dialog shows the whole image */
+.gallery__img {
   position: absolute;
   inset: 0;
   width: 100%;

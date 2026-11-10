@@ -13,7 +13,6 @@
 
         @if (hasImage) {
           <div class="card__media">
-            <img class="card__backdrop" [src]="promo.imageUrl" alt="" aria-hidden="true" draggable="false" />
             <img class="card__img" [src]="promo.imageUrl" alt="" [attr.loading]="i < 3 ? null : 'lazy'" draggable="false"
                  (error)="markBroken(promo.id)" />
           </div>

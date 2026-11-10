@@ -26,5 +26,8 @@ namespace OrderService.Application.Interfaces.Services
 
         // Called by the PaymentService once a payment has succeeded.
         Task<OrderResponseDto> MarkPaidAsync(int orderId);
+
+        // Cancels orders left pending longer than maxAge so the stock they hold goes back on sale; returns how many.
+        Task<int> ExpireStaleOrdersAsync(TimeSpan maxAge, int batchSize = 100);
     }
 }

@@ -1,33 +1,72 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: product-service
+  name: productservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: product-service
+      app: productservice
   template:
     metadata:
       labels:
-        app: product-service
+        app: productservice
     spec:
       containers:
-        - name: product-service
-          image: ghcr.io/REPO_OWNER/product-service:latest
+        - name: productservice
+          image: ghcr.io/REPO_OWNER/ecommerce-productservice:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          imagePullPolicy: Always
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: MSSQL_SA_PASSWORD }
+            - name: ConnectionStrings__DefaultConnection
+              value: Server=sqlserver,1433;Database=ECommerceProductDb;User Id=sa;Password=$(MSSQL_SA_PASSWORD);TrustServerCertificate=True;
+            - name: ConnectionStrings__Redis
+              value: redis:6379
+            - name: Services__OrderServiceUrl
+              value: http://orderservice:8080
+            - name: Internal__ApiKey
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: INTERNAL_API_KEY }
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_KEY }
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_ISSUER }
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_AUDIENCE }
+          startupProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { memory: 512Mi }
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: product-service
+  name: productservice
 spec:
   selector:
-    app: product-service
+    app: productservice
   ports:
     - protocol: TCP
-      port: 80
+      port: 8080
       targetPort: 8080
   type: ClusterIP

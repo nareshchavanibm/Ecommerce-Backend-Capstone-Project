@@ -214,6 +214,40 @@ namespace OrderService.Application.Services
             return (await BuildResponsesAsync([order])).Single();
         }
 
+        public async Task<int> ExpireStaleOrdersAsync(TimeSpan maxAge, int batchSize = 100)
+        {
+            var stale = await orderRepository.GetPendingCreatedBeforeAsync(
+                DateTime.UtcNow - maxAge, batchSize);
+
+            var expired = 0;
+
+            foreach (var order in stale)
+            {
+                try
+                {
+                    if (!await orderRepository.TryCancelPendingAsync(order.Id))
+                    {
+                        continue;
+                    }
+
+                    expired++;
+
+                    var items = await orderItemRepository.GetByOrderIdAsync(order.Id);
+
+                    await ReleaseQuietlyAsync(
+                        items.Select(x => new StockLine(x.ProductId, x.Quantity)).ToList(),
+                        $"order {order.OrderNumber} expired");
+                }
+                catch (Exception ex)
+                {
+                    // One bad order must not block the rest; it is retried on the next run.
+                    logger.LogError(ex, "Could not expire pending order {OrderNumber}.", order.OrderNumber);
+                }
+            }
+
+            return expired;
+        }
+
         // Moves to the new status and returns held stock when an order is cancelled.
         private async Task SetStatusAsync(Order order, OrderStatus newStatus)
         {

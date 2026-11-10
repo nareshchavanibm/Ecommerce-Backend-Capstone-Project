@@ -7,6 +7,7 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: ecommerce-sqlserver
+    restart: unless-stopped
 
     environment:
       ACCEPT_EULA: "Y"
@@ -39,6 +40,7 @@ services:
   redis:
     image: redis:7
     container_name: ecommerce-redis
+    restart: unless-stopped
 
     networks:
       - ecommerce-network
@@ -47,12 +49,17 @@ services:
   # USER SERVICE
   # =========================
   userservice:
+    build:
+      context: .
+      dockerfile: Services/UserService/Dockerfile
+
     image: localhost/ecommerce-userservice:latest
     container_name: ecommerce-userservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceUserDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
@@ -80,10 +87,11 @@ services:
 
     image: localhost/ecommerce-productservice:latest
     container_name: ecommerce-productservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceProductDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
@@ -101,8 +109,10 @@ services:
       - "5095:8080"
 
     depends_on:
-      - sqlserver
-      - redis
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
     networks:
       - ecommerce-network
@@ -117,10 +127,11 @@ services:
 
     image: localhost/ecommerce-orderservice:latest
     container_name: ecommerce-orderservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceOrderDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
@@ -135,8 +146,10 @@ services:
       - "5096:8080"
 
     depends_on:
-      - sqlserver
-      - productservice
+      sqlserver:
+        condition: service_healthy
+      productservice:
+        condition: service_started
 
     networks:
       - ecommerce-network
@@ -151,10 +164,11 @@ services:
 
     image: localhost/ecommerce-paymentservice:latest
     container_name: ecommerce-paymentservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommercePaymentDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
@@ -169,13 +183,16 @@ services:
       - "5097:8080"
 
     depends_on:
-      - sqlserver
+      sqlserver:
+        condition: service_healthy
+      orderservice:
+        condition: service_started
 
     networks:
       - ecommerce-network
 
   # =========================
-  # CHAT SERVICE (AI assistant)
+  # CHAT SERVICE
   # =========================
   chatservice:
     build:
@@ -184,15 +201,15 @@ services:
 
     image: localhost/ecommerce-chatservice:latest
     container_name: ecommerce-chatservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       Services__ProductServiceUrl: "http://productservice:8080"
       Services__OrderServiceUrl: "http://orderservice:8080"
 
-      # Leave FOUNDRY_ENDPOINT empty to run in retrieval-only mode.
       Foundry__Endpoint: "${FOUNDRY_ENDPOINT:-}"
       Foundry__ChatDeployment: "${FOUNDRY_CHAT_DEPLOYMENT:-gpt-5.4-mini}"
       Foundry__EmbeddingDeployment: "${FOUNDRY_EMBEDDING_DEPLOYMENT:-}"
@@ -206,14 +223,16 @@ services:
       - "5098:8080"
 
     depends_on:
-      - productservice
-      - orderservice
+      productservice:
+        condition: service_started
+      orderservice:
+        condition: service_started
 
     networks:
       - ecommerce-network
 
   # =========================
-  # REVIEW SERVICE (ratings and reviews)
+  # REVIEW SERVICE
   # =========================
   reviewservice:
     build:
@@ -222,10 +241,11 @@ services:
 
     image: localhost/ecommerce-reviewservice:latest
     container_name: ecommerce-reviewservice
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: "http://+:8080"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ECommerceReviewDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
 
@@ -251,7 +271,6 @@ services:
   # =========================
   # API GATEWAY
   # =========================
-
   apigateway:
     build:
       context: .
@@ -259,6 +278,7 @@ services:
 
     image: localhost/ecommerce-apigateway:latest
     container_name: ecommerce-apigateway
+    restart: unless-stopped
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
@@ -266,6 +286,8 @@ services:
 
       ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/ecommerce-gateway.pfx"
       ASPNETCORE_Kestrel__Certificates__Default__Password: "${GATEWAY_CERT_PASSWORD}"
+
+      Cors__AllowedOrigins__1: "http://172.26.66.30:4000"
 
       Jwt__Key: "${JWT_KEY}"
       Jwt__Issuer: "${JWT_ISSUER}"
@@ -282,12 +304,18 @@ services:
         read_only: true
 
     depends_on:
-      - userservice
-      - productservice
-      - orderservice
-      - paymentservice
-      - chatservice
-      - reviewservice
+      userservice:
+        condition: service_started
+      productservice:
+        condition: service_started
+      orderservice:
+        condition: service_started
+      paymentservice:
+        condition: service_started
+      chatservice:
+        condition: service_started
+      reviewservice:
+        condition: service_started
 
     networks:
       - ecommerce-network
@@ -305,4 +333,3 @@ volumes:
 networks:
   ecommerce-network:
     external: true
-

@@ -8,7 +8,7 @@ export function isCashOnDelivery(payment: Pick<Payment, 'paymentMethod'> | null 
 export function paymentSummary(payment: Payment): string {
 
   if (isCashOnDelivery(payment)) {
-    return `Cash on delivery \u00b7 ${payment.status === 'Pending' ? 'Pay on delivery' : payment.status}`;
+    return `Pay on delivery \u00b7 ${payment.status === 'Pending' ? 'Due on delivery' : payment.status}`;
   }
 
   return `${payment.paymentMethod} \u00b7 ${payment.status}`;

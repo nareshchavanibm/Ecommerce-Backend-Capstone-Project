@@ -3,6 +3,9 @@ using ECommerce.Observability;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProductService.Api.Extensions;
 using ProductService.Application.Validators;
@@ -28,6 +31,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration =
         builder.Configuration.GetConnectionString("Redis");
 });
+
+// Registered last so it replaces the plain Redis cache; a Redis outage must not take the catalog down.
+builder.Services.AddSingleton<IDistributedCache>(sp => new ResilientDistributedCache(
+    new RedisCache(sp.GetRequiredService<IOptions<RedisCacheOptions>>()),
+    sp.GetRequiredService<ILogger<ResilientDistributedCache>>()));
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException(
@@ -79,10 +87,11 @@ app.UseObservability();
 
 app.UseMiddleware<ProductService.Api.Middleware.ExceptionHandlingMiddleware>();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

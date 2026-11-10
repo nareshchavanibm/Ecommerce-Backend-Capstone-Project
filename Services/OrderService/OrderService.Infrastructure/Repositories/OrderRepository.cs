@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderService.Application.Interfaces.Repositories;
 using OrderService.Domain.Entities;
+using OrderService.Domain.Enums;
 using OrderService.Infrastructure.Data;
 
 namespace OrderService.Infrastructure.Repositories
@@ -39,6 +40,24 @@ namespace OrderService.Infrastructure.Repositories
             return await _context.Orders
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<IReadOnlyList<Order>> GetPendingCreatedBeforeAsync(DateTime cutoffUtc, int take)
+        {
+            return await _context.Orders
+                .Where(x => x.Status == OrderStatus.Pending && x.CreatedAt < cutoffUtc)
+                .OrderBy(x => x.CreatedAt)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        public async Task<bool> TryCancelPendingAsync(int orderId)
+        {
+            var updated = await _context.Orders
+                .Where(x => x.Id == orderId && x.Status == OrderStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Status, OrderStatus.Cancelled));
+
+            return updated == 1;
         }
 
         public async Task<Order> AddAsync(Order order)

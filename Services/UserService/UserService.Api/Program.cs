@@ -124,10 +124,12 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAsync(context);
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseAuthentication();

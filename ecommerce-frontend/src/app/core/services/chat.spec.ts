@@ -53,6 +53,20 @@ describe('ChatService', () => {
     next.flush({ conversationId: 'abc', reply: 'Welcome', agent: 'customer-service', products: [], order: null, escalate: false, supportEmail: null });
   });
 
+  it('removes an edited message and the replies after it', () => {
+    service.send('first');
+    http.expectOne(req => req.url.endsWith('/api/chat')).flush({ conversationId: 'abc', reply: 'one', agent: 'customer-service', products: [], order: null, escalate: false, supportEmail: null });
+
+    service.send('second');
+    http.expectOne(req => req.url.endsWith('/api/chat')).flush({ conversationId: 'abc', reply: 'two', agent: 'customer-service', products: [], order: null, escalate: false, supportEmail: null });
+
+    const second = service.messages().find(m => m.text === 'second')!;
+
+    expect(service.startEdit(second)).toBe('second');
+    expect(service.messages().map(m => m.text)).toEqual(['first', 'one']);
+    expect(service.startEdit(service.messages()[1])).toBeNull();
+  });
+
   it('shows a friendly error and keeps failed turns out of the history', () => {
     service.send('hello');
     http.expectOne(req => req.url.endsWith('/api/chat')).flush({}, { status: 429, statusText: 'Too Many Requests' });

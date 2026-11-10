@@ -262,7 +262,7 @@ td button + button:hover:not(:disabled) {
 .image-preview {
   width: 120px;
   height: 120px;
-  object-fit: cover;
+  object-fit: contain;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }

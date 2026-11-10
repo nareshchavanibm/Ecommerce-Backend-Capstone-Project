@@ -17,8 +17,20 @@ namespace ChatService.Api.Agents
         [GeneratedRegex(@"\b(human|person|agent|representative|someone)\b|talk to|speak to", RegexOptions.IgnoreCase)]
         private static partial Regex WantsHuman();
 
-        [GeneratedRegex(@"\b(my (\w+ )?orders?|where is my|order status|track(ing)? (my )?order|(recent|latest|past|previous|delivered|shipped|pending|confirmed|processing|cancell?ed) orders?)\b", RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"\b(my (\w+ )?orders?|where is my|order status|track(ing)? (my )?order|orders|(recent|latest|past|previous|delivered|shipped|pending|confirmed|processing|cancell?ed) orders?)\b", RegexOptions.IgnoreCase)]
         private static partial Regex OrderIntent();
+
+        [GeneratedRegex(@"\bcategories\b|\bcategory list\b", RegexOptions.IgnoreCase)]
+        private static partial Regex CategoriesIntent();
+
+        [GeneratedRegex(@"\b(list|all|show|display)\b|\bproducts?\b|\bcategory\b|\bwhat do you (sell|have)\b", RegexOptions.IgnoreCase)]
+        private static partial Regex ListProductsIntent();
+
+        [GeneratedRegex(@"\borders\b", RegexOptions.IgnoreCase)]
+        private static partial Regex OrdersWord();
+
+        [GeneratedRegex(@"\b(how|what does)\b", RegexOptions.IgnoreCase)]
+        private static partial Regex HowTo();
 
         [GeneratedRegex(@"\b(pending|confirmed|processing|shipped|delivered|cancell?ed)\b", RegexOptions.IgnoreCase)]
         private static partial Regex StatusWord();
@@ -83,9 +95,7 @@ namespace ChatService.Api.Agents
 
                 if (StatusWord().Match(message) is { Success: true } word)
                 {
-                    var status = word.Value.ToLowerInvariant().Replace("canceled", "cancelled");
-
-                    filter["status"] = char.ToUpperInvariant(status[0]) + status[1..];
+                    filter["status"] = word.Value;
                 }
 
                 var payload = await list.ExecuteAsync(filter, context, cancellationToken);
@@ -95,18 +105,27 @@ namespace ChatService.Api.Agents
                     return Say("Please sign in to see your orders.");
                 }
 
-                var orders = JsonSerializer.Deserialize<List<Models.OrderCard>>(payload) ?? new();
+                using var doc = JsonDocument.Parse(payload);
+                var total = doc.RootElement.GetProperty("totalMatches").GetInt32();
+                var label = OrderLabel(filter["status"]?.ToString());
 
-                if (orders.Count == 0)
+                if (total == 0)
                 {
-                    return Say(filter["status"] is { } wanted
-                        ? $"You do not have any {wanted.ToString().ToLowerInvariant()} orders."
-                        : "You do not have any orders yet.");
+                    return Say($"You do not have any {label}.");
                 }
 
-                context.Order = orders[0];
+                return Say($"You have {total} {label}." +
+                           (total > context.Orders.Count ? $" Showing the newest {context.Orders.Count}." : string.Empty));
+            }
 
-                return Say($"Your latest order {context.Order.OrderNumber} is {context.Order.Status}. You can see all orders under Orders in the menu.");
+            if (CategoriesIntent().IsMatch(message) && await ListCategoriesAsync(context, cancellationToken) is { } categoryReply)
+            {
+                return categoryReply;
+            }
+
+            if (ListProductsIntent().IsMatch(message) && await ListProductsAsync(message, context, cancellationToken) is { } listReply)
+            {
+                return listReply;
             }
 
             if (agent.Name == AgentCatalog.Recommendation && _runner.Tool("search_products", context.Role) is { } products)
@@ -236,6 +255,40 @@ namespace ChatService.Api.Agents
                 return Say(string.Join("; ", lines) + ".");
             }
 
+            if (OrdersWord().IsMatch(message) && !HowTo().IsMatch(message) &&
+                StatusWord().Match(message) is { Success: true } wanted &&
+                _runner.Tool("list_recent_orders", context.Role) is { } byStatus)
+            {
+                var payload = await byStatus.ExecuteAsync(
+                    new JsonObject { ["status"] = wanted.Value, ["limit"] = OrderLookupClient.MaxListed }, context, cancellationToken);
+
+                if (payload.Contains("orders_unavailable"))
+                {
+                    return Say("I could not load orders right now.");
+                }
+
+                using var doc = JsonDocument.Parse(payload);
+                var matching = doc.RootElement.GetProperty("matchingOrders").GetInt32();
+                var label = OrderLabel(wanted.Value);
+
+                return Say(matching == 0
+                    ? $"There are no {label}."
+                    : $"There are {matching} {label}." + (matching > context.Orders.Count ? $" Showing the newest {context.Orders.Count}." : string.Empty));
+            }
+
+            if (!HowTo().IsMatch(message))
+            {
+                if (CategoriesIntent().IsMatch(message) && await ListCategoriesAsync(context, cancellationToken) is { } categoryReply)
+                {
+                    return categoryReply;
+                }
+
+                if (ProductWord().IsMatch(message) && await ListProductsAsync(message, context, cancellationToken) is { } listReply)
+                {
+                    return listReply;
+                }
+            }
+
             // Guide questions ("how do I ...") take priority over the order summary.
             if (_runner.Tool("search_admin_help", context.Role) is { } help)
             {
@@ -295,6 +348,54 @@ namespace ChatService.Api.Agents
             return text.Replace("**", string.Empty).Trim();
         }
 
+        [GeneratedRegex(@"\bproducts?\b", RegexOptions.IgnoreCase)]
+        private static partial Regex ProductWord();
+
+        private async Task<AgentResult?> ListCategoriesAsync(AgentContext context, CancellationToken cancellationToken)
+        {
+            if (_runner.Tool("list_categories", context.Role) is not { } tool)
+            {
+                return null;
+            }
+
+            var payload = await tool.ExecuteAsync(new JsonObject(), context, cancellationToken);
+
+            if (payload.Contains("no_categories"))
+            {
+                return null;
+            }
+
+            using var doc = JsonDocument.Parse(payload);
+            var names = doc.RootElement.GetProperty("categories").EnumerateArray()
+                .Select(c => $"{c.GetProperty("name").GetString()} ({c.GetProperty("products").GetInt32()})");
+
+            return Say($"Our categories: {string.Join(", ", names)}.");
+        }
+
+        private async Task<AgentResult?> ListProductsAsync(string message, AgentContext context, CancellationToken cancellationToken)
+        {
+            if (_runner.Tool("list_products", context.Role) is not { } tool)
+            {
+                return null;
+            }
+
+            var payload = await tool.ExecuteAsync(new JsonObject { ["query"] = message }, context, cancellationToken);
+
+            if (context.Products.Count == 0)
+            {
+                return null;
+            }
+
+            using var doc = JsonDocument.Parse(payload);
+            var total = doc.RootElement.GetProperty("totalMatches").GetInt32();
+
+            return Say($"I found {total} matching {(total == 1 ? "product" : "products")}." +
+                       (total > context.Products.Count ? $" Showing the first {context.Products.Count}, cheapest first." : string.Empty));
+        }
+
         private static AgentResult Say(string reply) => new(reply, false, 0, 0);
+
+        private static string OrderLabel(string? status) =>
+            OrderLookupClient.NormalizeStatus(status) is { } s ? $"{s.ToLowerInvariant()} orders" : "orders";
     }
 }

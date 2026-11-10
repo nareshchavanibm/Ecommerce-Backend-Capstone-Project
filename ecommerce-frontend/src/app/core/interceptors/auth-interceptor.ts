@@ -14,15 +14,20 @@ import {
 import { catchError, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../auth/auth';
+import { environment } from '../../../environments/environment';
 
 const AUTH_CALLS = /\/api\/auth\/(login|register|refresh|logout)/;
+
+// Relative URLs and the API origin only; the token must never reach a third-party host.
+const isApiRequest = (url: string) =>
+  !/^([a-z][a-z\d+.-]*:)?\/\//i.test(url) || url.startsWith(environment.apiUrl);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const platformId = inject(PLATFORM_ID);
 
   // localStorage is available only in the browser
-  if (isPlatformBrowser(platformId)) {
+  if (isPlatformBrowser(platformId) && isApiRequest(req.url)) {
 
     const token = localStorage.getItem('token');
 

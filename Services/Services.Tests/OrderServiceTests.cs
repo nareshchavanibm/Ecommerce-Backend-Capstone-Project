@@ -186,6 +186,27 @@ public class OrderServiceTests
     }
 
     [Fact]
+    public async Task Stale_pending_orders_are_cancelled_and_their_stock_released()
+    {
+        var stale = await _service.CreateOrderAsync(Request((1, 2)));
+        var fresh = await _service.CreateOrderAsync(Request((1, 1)));
+        var paid = await _service.CreateOrderAsync(Request((2, 1)));
+
+        await _service.MarkPaidAsync(paid.Id);
+
+        _orders.Orders.Single(x => x.Id == stale.Id).CreatedAt = DateTime.UtcNow.AddHours(-3);
+        _orders.Orders.Single(x => x.Id == paid.Id).CreatedAt = DateTime.UtcNow.AddHours(-3);
+
+        var expired = await _service.ExpireStaleOrdersAsync(TimeSpan.FromHours(1));
+
+        Assert.Equal(1, expired);
+        Assert.Equal(OrderStatus.Cancelled, _orders.Orders.Single(x => x.Id == stale.Id).Status);
+        Assert.Equal(OrderStatus.Pending, _orders.Orders.Single(x => x.Id == fresh.Id).Status);
+        Assert.Equal(OrderStatus.Confirmed, _orders.Orders.Single(x => x.Id == paid.Id).Status);
+        Assert.Equal(2, Assert.Single(_stock.Released).Single().Quantity);
+    }
+
+    [Fact]
     public async Task Each_order_gets_a_public_number_that_finds_it()
     {
         var first = await _service.CreateOrderAsync(Request((1, 1)));

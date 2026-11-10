@@ -30,6 +30,7 @@ namespace ChatService.Api.Models
                 Suggestions = new[]
                 {
                     "Show recent orders",
+                    "List orders with status delivered",
                     "Look up an order by number",
                     "How do I import products?",
                     "How do I change an order status?"
@@ -43,6 +44,8 @@ namespace ChatService.Api.Models
                 Suggestions = new[]
                 {
                     "Where is my order?",
+                    "List my delivered orders",
+                    "List all mobile products",
                     "How do I cancel an order?",
                     "Recommend a gift under 1000"
                 }

@@ -77,6 +77,26 @@ internal sealed class FakeOrderRepository : IOrderRepository
     public Task<IEnumerable<Order>> GetAllAsync() =>
         Task.FromResult<IEnumerable<Order>>(Orders);
 
+    public Task<IReadOnlyList<Order>> GetPendingCreatedBeforeAsync(DateTime cutoffUtc, int take) =>
+        Task.FromResult<IReadOnlyList<Order>>(Orders
+            .Where(x => x.Status == OrderService.Domain.Enums.OrderStatus.Pending && x.CreatedAt < cutoffUtc)
+            .Take(take)
+            .ToList());
+
+    public Task<bool> TryCancelPendingAsync(int orderId)
+    {
+        var order = Orders.FirstOrDefault(x => x.Id == orderId);
+
+        if (order?.Status != OrderService.Domain.Enums.OrderStatus.Pending)
+        {
+            return Task.FromResult(false);
+        }
+
+        order.Status = OrderService.Domain.Enums.OrderStatus.Cancelled;
+
+        return Task.FromResult(true);
+    }
+
     public Task<Order> AddAsync(Order order)
     {
         if (FailOnAdd)

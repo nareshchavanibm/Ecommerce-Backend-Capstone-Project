@@ -51,9 +51,7 @@ export class Signup {
 
     this.authService.signup(request).subscribe({
 
-      next: (response) => {
-
-        console.log('Signup successful:', response);
+      next: () => {
 
         this.successMessage =
           'Registration successful. Please login.';

@@ -81,14 +81,11 @@ namespace UserService.Application.Services
 
             if (user == null)
             {
+                // Same hashing work as a real login, so response time does not reveal unknown emails.
+                _passwordHasher.HashPassword(new User(), request.Password);
+
                 throw new UnauthorizedAccessException(
                     "Invalid email or password.");
-            }
-
-            if (!user.IsActive)
-            {
-                throw new UnauthorizedAccessException(
-                    "User account is inactive.");
             }
 
             var passwordValid =
@@ -101,6 +98,13 @@ namespace UserService.Application.Services
             {
                 throw new UnauthorizedAccessException(
                     "Invalid email or password.");
+            }
+
+            // Checked after the password so account status is only revealed to the owner.
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException(
+                    "User account is inactive.");
             }
 
             return await IssueAsync(user);

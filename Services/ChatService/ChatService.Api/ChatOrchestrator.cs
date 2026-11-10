@@ -86,6 +86,7 @@ namespace ChatService.Api
                     context.Citations.Clear();
                     context.Products.Clear();
                     context.Order = null;
+                    context.Orders.Clear();
                     result = await _offline.RespondAsync(agent, input.Message, context, cancellationToken);
                 }
             }
@@ -130,6 +131,7 @@ namespace ChatService.Api
                 Citations = context.Citations,
                 Products = context.Products,
                 Order = context.Order,
+                Orders = context.Orders,
                 Escalate = context.Escalate,
                 SupportEmail = context.Escalate ? _options.SupportEmail : null
             };

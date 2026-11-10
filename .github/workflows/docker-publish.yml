@@ -1,0 +1,137 @@
+name: Publish Docker images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Services/**'
+      - 'ApiGateway/**'
+      - 'ecommerce-frontend/**'
+      - '.github/workflows/docker-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  backend-tests:
+    uses: ./.github/workflows/backend-tests.yml
+
+  frontend-tests:
+    uses: ./.github/workflows/frontend-ci.yml
+
+  publish:
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: userservice, context: ., file: Services/UserService/Dockerfile }
+          - { name: productservice, context: ., file: Services/ProductService/Dockerfile }
+          - { name: orderservice, context: ., file: Services/OrderService/Dockerfile }
+          - { name: paymentservice, context: ., file: Services/PaymentService/Dockerfile }
+          - { name: reviewservice, context: ., file: Services/ReviewService/Dockerfile }
+          - { name: chatservice, context: ., file: Services/ChatService/Dockerfile }
+          - { name: apigateway, context: ., file: ApiGateway/Dockerfile }
+          - { name: frontend, context: ecommerce-frontend, file: ecommerce-frontend/Dockerfile }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ecommerce-${{ matrix.name }}" >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          # Only the frontend Dockerfile declares these; other builds ignore them.
+          build-args: |
+            API_URL=${{ vars.API_URL }}
+            GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # Runs only when the repository variable K8S_DEPLOY is 'true' (set it once the cluster and secrets exist).
+  deploy:
+    needs: publish
+    if: ${{ github.ref == 'refs/heads/main' && vars.K8S_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      NAMESPACE: ecommerce
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Configure kubectl
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Namespace, secrets and config
+        env:
+          MSSQL_SA_PASSWORD: ${{ secrets.MSSQL_SA_PASSWORD }}
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          JWT_ISSUER: ${{ vars.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ vars.JWT_AUDIENCE }}
+          INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+          FOUNDRY_API_KEY: ${{ secrets.FOUNDRY_API_KEY }}
+          FOUNDRY_ENDPOINT: ${{ vars.FOUNDRY_ENDPOINT }}
+          FOUNDRY_CHAT_DEPLOYMENT: ${{ vars.FOUNDRY_CHAT_DEPLOYMENT }}
+          FOUNDRY_EMBEDDING_DEPLOYMENT: ${{ vars.FOUNDRY_EMBEDDING_DEPLOYMENT }}
+          CORS_ALLOWED_ORIGIN: ${{ vars.CORS_ALLOWED_ORIGIN }}
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "$NAMESPACE" create secret generic ecommerce-secrets \
+            --from-literal=MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" \
+            --from-literal=JWT_KEY="$JWT_KEY" \
+            --from-literal=JWT_ISSUER="$JWT_ISSUER" \
+            --from-literal=JWT_AUDIENCE="$JWT_AUDIENCE" \
+            --from-literal=INTERNAL_API_KEY="$INTERNAL_API_KEY" \
+            --from-literal=FOUNDRY_API_KEY="$FOUNDRY_API_KEY" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "$NAMESPACE" create configmap ecommerce-config \
+            --from-literal=FOUNDRY_ENDPOINT="$FOUNDRY_ENDPOINT" \
+            --from-literal=FOUNDRY_CHAT_DEPLOYMENT="${FOUNDRY_CHAT_DEPLOYMENT:-gpt-5.4-mini}" \
+            --from-literal=FOUNDRY_EMBEDDING_DEPLOYMENT="$FOUNDRY_EMBEDDING_DEPLOYMENT" \
+            --from-literal=CORS_ALLOWED_ORIGIN="$CORS_ALLOWED_ORIGIN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Pin image tags to this commit
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          sed -i "s|REPO_OWNER|${owner}|g; s|:latest|:${GITHUB_SHA}|g" k8s/*.yaml
+
+      - name: Apply manifests
+        run: kubectl -n "$NAMESPACE" apply -f k8s/
+
+      - name: Wait for rollout
+        run: |
+          kubectl -n "$NAMESPACE" rollout status statefulset/sqlserver --timeout=300s
+          for d in userservice productservice orderservice paymentservice reviewservice chatservice apigateway frontend; do
+            kubectl -n "$NAMESPACE" rollout status deployment/"$d" --timeout=300s
+          done

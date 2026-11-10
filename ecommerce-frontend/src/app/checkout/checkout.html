@@ -64,21 +64,20 @@
               <h2 class="status__title">Payment not completed</h2>
               <p class="status__text">
                 Order {{ order()?.orderNumber }} is still waiting for payment.
-                Try again with the same or a different method, or cancel the order.
+                Try again, choose a different payment method, or cancel the order.
               </p>
 
-              <fieldset class="methods">
-                <legend class="methods__legend">Payment method</legend>
-                @for (option of methods; track option.value) {
-                  <label class="method">
-                    <input type="radio" name="retry-method" [formControl]="method" [value]="option.value" />
-                    <span>{{ option.label }}</span>
-                  </label>
-                }
-              </fieldset>
+              <p class="card__text">
+                Payment method: <strong>{{ methodSummary() || 'Not chosen' }}</strong>
+                <a routerLink="/checkout/payment">{{ method() ? 'Change' : 'Choose' }}</a>
+              </p>
+
+              @if (methodMissing()) {
+                <p class="field-error">Choose a payment method to continue.</p>
+              }
 
               <div class="status__actions">
-                <button app-button type="button" [disabled]="method.invalid" (click)="retryPayment()">Try payment again</button>
+                <button app-button type="button" (click)="retryPayment()">Try payment again</button>
                 <button app-button type="button" variant="outline" [loading]="cancelling()" (click)="cancelOrder()">Cancel order</button>
               </div>
             </div>
@@ -145,34 +144,25 @@
               <section class="card" aria-labelledby="payment-title">
                 <h2 id="payment-title" class="card__title">Payment method</h2>
 
-                <fieldset class="methods" [attr.aria-describedby]="method.touched && method.invalid ? 'method-error' : null">
-                  <legend class="visually-hidden">Choose a payment method</legend>
+                @if (method()) {
+                  <p class="card__text"><strong>{{ methodSummary() }}</strong></p>
+                } @else {
+                  <p class="card__text">Choose how you want to pay.</p>
+                }
 
-                  @for (option of methods; track option.value) {
-                    <label class="method">
-                      <input type="radio" name="method" [formControl]="method" [value]="option.value" (blur)="method.markAsTouched()" />
-                      <span>{{ option.label }}</span>
-                    </label>
-                  }
-                </fieldset>
+                <div class="address-actions">
+                  <a routerLink="/checkout/payment">{{ method() ? 'Change payment method' : 'Choose payment method' }}</a>
+                </div>
 
                 <div aria-live="polite">
-                  @if (method.touched && method.invalid) {
+                  @if (methodMissing() && !method()) {
                     <p id="method-error" class="field-error">Choose a payment method to continue.</p>
                   }
                 </div>
-
-                <p class="card__text">
-                  @if (method.value === 'CashOnDelivery') {
-                    You will pay the order total in cash when your order is delivered. Nothing is charged now.
-                  } @else {
-                    Payments are handled by the store&rsquo;s payment service. No card details are entered or stored on this page.
-                  }
-                </p>
               </section>
 
               <button app-button type="submit" class="submit" [loading]="stage() === 'processing'">
-                {{ method.value === 'CashOnDelivery' ? (order() ? 'Confirm order ' + order()!.orderNumber : 'Place order') : (order() ? 'Pay for order ' + order()!.orderNumber : 'Place order') }} &middot; {{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}
+                {{ method() === 'CashOnDelivery' ? (order() ? 'Confirm order ' + order()!.orderNumber : 'Place order') : (order() ? 'Pay for order ' + order()!.orderNumber : 'Place order') }} &middot; {{ total() | currency: 'INR' : 'symbol' : '1.0-2' }}
               </button>
 
               <a class="back" routerLink="/cart">Back to cart</a>

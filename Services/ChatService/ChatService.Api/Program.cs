@@ -37,6 +37,8 @@ builder.Services.AddSingleton<IAgentTool, SearchAdminHelpTool>();
 builder.Services.AddSingleton<IAgentTool, GetProductInventoryTool>();
 builder.Services.AddSingleton<IAgentTool, ListInventoryTool>();
 builder.Services.AddSingleton<IAgentTool, SearchProductsTool>();
+builder.Services.AddSingleton<IAgentTool, ListProductsTool>();
+builder.Services.AddSingleton<IAgentTool, ListCategoriesTool>();
 builder.Services.AddSingleton<IAgentTool, EscalateTool>();
 builder.Services.AddTransient<IAgentTool, LookupOrderTool>();
 builder.Services.AddTransient<IAgentTool, ListMyOrdersTool>();

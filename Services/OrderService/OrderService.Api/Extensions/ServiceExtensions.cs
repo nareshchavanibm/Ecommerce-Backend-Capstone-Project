@@ -27,6 +27,8 @@ namespace OrderService.Api.Extensions
             services.AddScoped<IOrderService, OrderService.Application.Services.OrderService>();
             services.AddScoped<ICartService, CartService>();
 
+            services.AddHostedService<OrderService.Api.Notifications.PendingOrderExpiryService>();
+
             var productServiceUrl = configuration["Services:ProductServiceUrl"]
                 ?? throw new InvalidOperationException(
                     "Services:ProductServiceUrl is not configured.");

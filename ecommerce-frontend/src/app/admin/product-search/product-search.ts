@@ -7,7 +7,6 @@ import { Observable, catchError, debounceTime, distinctUntilChanged, forkJoin, m
 
 import { ProductService } from '../../core/services/product';
 import { Product } from '../../shared/models/product.model';
-import { Alert } from '../../shared/ui/alert/alert';
 import { Badge } from '../../shared/ui/badge/badge';
 import { TextInput } from '../../shared/ui/text-input/text-input';
 import { productImageUrl } from '../../shared/utils/product-image';
@@ -17,7 +16,7 @@ const SEARCH_LIMIT = 8;
 // Admin-wide product finder: by id, name, description or specification.
 @Component({
   selector: 'app-admin-product-search',
-  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink, Alert, Badge, TextInput],
+  imports: [CurrencyPipe, ReactiveFormsModule, RouterLink, Badge, TextInput],
   templateUrl: './product-search.html',
   styleUrl: './product-search.css'
 })

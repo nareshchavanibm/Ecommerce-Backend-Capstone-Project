@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
+import { PaymentSelection } from '../core/services/payment-selection';
 import { Checkout } from './checkout';
 
 @Component({ template: '' })
@@ -73,13 +74,11 @@ describe('Checkout', () => {
     await settle();
   };
 
-  const radio = (root: HTMLElement, label: string): HTMLInputElement =>
-    Array.from(root.querySelectorAll<HTMLLabelElement>('label.method'))
-      .find(item => item.textContent?.trim() === label)!
-      .querySelector<HTMLInputElement>('input')!;
+  const choose = async (label: string): Promise<void> => {
+    const methods: Record<string, string> = { Card: 'Card', UPI: 'UPI', 'Pay on delivery': 'CashOnDelivery' };
 
-  const choose = async (value: string): Promise<void> => {
-    radio(el(), value).click();
+    // The method is picked on the separate payment page.
+    TestBed.inject(PaymentSelection).method.set(methods[label]);
     await settle();
   };
 
@@ -167,15 +166,10 @@ describe('Checkout', () => {
     expect(sessionStorage.getItem('checkout.pendingOrderNumber')).toBeNull();
   });
 
-  it('confirms a cash on delivery order even though its payment stays pending', async () => {
+  it('confirms a pay on delivery order even though its payment stays pending', async () => {
 
     await open();
-
-    expect(el().textContent).toContain('Cash on delivery');
-
-    await choose('Cash on delivery');
-
-    expect(el().textContent).toContain('pay the order total in cash');
+    await choose('Pay on delivery');
 
     await submit();
 
@@ -278,6 +272,19 @@ describe('Checkout', () => {
     expect(TestBed.inject(Router).url).toBe('/checkout');
   });
 
+  it('links to the separate payment page and shows the chosen method', async () => {
+
+    await open();
+
+    expect(el().querySelector('a[href="/checkout/payment"]')).not.toBeNull();
+    expect(el().querySelector('input[autocomplete="cc-number"]')).toBeNull();
+
+    TestBed.inject(PaymentSelection).summary.set('Visa ending 4242');
+    await choose('Card');
+
+    expect(el().textContent).toContain('Visa ending 4242');
+  });
+
   it('reconciles when the payment already exists on the server', async () => {
 
     await open();
@@ -363,10 +370,7 @@ describe('Checkout resuming an unpaid order', () => {
 
     expect(harness.routeNativeElement!.textContent).toContain('unpaid order ORD-7');
 
-    Array.from(harness.routeNativeElement!.querySelectorAll<HTMLLabelElement>('label.method'))
-      .find(item => item.textContent?.trim() === 'Card')!
-      .querySelector<HTMLInputElement>('input')!
-      .click();
+    TestBed.inject(PaymentSelection).method.set('UPI');
     harness.routeNativeElement!.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
     TestBed.tick();
     await harness.fixture.whenStable();

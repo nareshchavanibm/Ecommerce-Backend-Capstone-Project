@@ -34,6 +34,9 @@ describe('ProductList', () => {
     TestBed.tick();
     await harness.fixture.whenStable();
     harness.detectChanges();
+
+    // Ratings are loaded for the visible products; none are needed by these tests.
+    http.match(req => req.url.endsWith('/api/reviews/summary')).forEach(req => req.flush([]));
   };
 
   const open = async (url: string): Promise<void> => {
@@ -51,7 +54,11 @@ describe('ProductList', () => {
     await settle();
   };
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    TestBed.tick();
+    http.match(req => req.url.endsWith('/api/reviews/summary')).forEach(req => req.flush([]));
+    http.verify();
+  });
 
   it('sends URL filters and page to the API', async () => {
 

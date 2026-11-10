@@ -134,11 +134,6 @@ export class MyOrders implements OnInit {
 
         next: (data) => {
 
-          console.log(
-            'My Orders:',
-            data
-          );
-
           this.orders.set(data);
 
           this.loading.set(false);

@@ -1,0 +1,48 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ecommerce-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    paths:
+      - 'ecommerce-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ecommerce-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ecommerce-frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Test
+        run: npm test -- --watch=false
+
+      - name: Build
+        run: npm run build -- --configuration production
+
+      - name: Build Docker image (not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: ecommerce-frontend
+          push: false
+          build-args: API_URL=https://api.example.com

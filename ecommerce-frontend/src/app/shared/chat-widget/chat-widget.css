@@ -259,6 +259,7 @@ a:focus-visible {
   font-size: var(--text-xs);
 }
 
+.orders,
 .products {
   display: grid;
   gap: 0;
@@ -271,7 +272,7 @@ a:focus-visible {
 
 .product__img {
   flex: none;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--radius-sm);
 }
 
@@ -295,6 +296,13 @@ a:focus-visible {
   margin-top: var(--space-3);
   font-size: var(--text-sm);
   line-height: var(--leading-body);
+}
+
+.msg__edit {
+  display: block;
+  margin: var(--space-1) 0 0 auto;
+  padding: 0;
+  font-size: var(--text-xs);
 }
 
 .rate {

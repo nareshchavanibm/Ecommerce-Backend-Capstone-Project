@@ -1,5 +1,6 @@
 :host {
   display: block;
+  height: 100%;
 }
 
 .card {
@@ -29,12 +30,12 @@
   place-items: center;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--color-bg-subtle);
+  background: #fff;
   color: var(--color-border-strong);
 }
 
-/* Absolute fill so the image's own size never changes the card height */
-.card__media img {
+/* Cover fills the whole frame so no bars show; edges may be cropped */
+.card__img {
   position: absolute;
   inset: 0;
   width: 100%;

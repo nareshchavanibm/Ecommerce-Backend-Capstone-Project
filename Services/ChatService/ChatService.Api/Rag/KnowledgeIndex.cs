@@ -29,6 +29,10 @@ namespace ChatService.Api.Rag
         public float[]? Vector { get; set; }
 
         internal string[] Tokens { get; set; } = Array.Empty<string>();
+
+        private HashSet<string>? _tokenSet;
+
+        internal HashSet<string> TokenSet() => _tokenSet ??= new HashSet<string>(Tokens);
     }
 
     public record SearchHit(KnowledgeChunk Chunk, double Score);
@@ -62,6 +66,8 @@ namespace ChatService.Api.Rag
         }
 
         public int Count => _all.Count;
+
+        public IReadOnlyList<KnowledgeChunk> Chunks(string kind) => _all.Where(c => c.Kind == kind).ToList();
 
         public async Task ReplaceSourceAsync(
             string source,

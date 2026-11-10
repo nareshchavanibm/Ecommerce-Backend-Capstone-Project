@@ -96,5 +96,13 @@ describe('authInterceptor', () => {
 
       expect(backend.expectOne('/api/products').request.headers.has('Authorization')).toBe(false);
     });
+
+    it('never sends the token to another origin', () => {
+      localStorage.setItem('token', tokenExpiringIn(3600));
+
+      http.get('https://third-party.example/script').subscribe();
+
+      expect(backend.expectOne('https://third-party.example/script').request.headers.has('Authorization')).toBe(false);
+    });
   });
 });

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatservice
+  template:
+    metadata:
+      labels:
+        app: chatservice
+    spec:
+      containers:
+        - name: chatservice
+          image: ghcr.io/REPO_OWNER/ecommerce-chatservice:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: Services__ProductServiceUrl
+              value: http://productservice:8080
+            - name: Services__OrderServiceUrl
+              value: http://orderservice:8080
+            - name: Foundry__Endpoint
+              valueFrom:
+                configMapKeyRef: { name: ecommerce-config, key: FOUNDRY_ENDPOINT }
+            - name: Foundry__ChatDeployment
+              valueFrom:
+                configMapKeyRef: { name: ecommerce-config, key: FOUNDRY_CHAT_DEPLOYMENT }
+            - name: Foundry__EmbeddingDeployment
+              valueFrom:
+                configMapKeyRef: { name: ecommerce-config, key: FOUNDRY_EMBEDDING_DEPLOYMENT }
+            - name: Foundry__ApiKey
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: FOUNDRY_API_KEY }
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_KEY }
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_ISSUER }
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_AUDIENCE }
+          startupProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatservice
+spec:
+  selector:
+    app: chatservice
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

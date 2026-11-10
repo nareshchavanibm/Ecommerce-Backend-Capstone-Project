@@ -109,6 +109,18 @@ export class ChatWidget {
     this.chat.rate(message, rating);
   }
 
+  protected edit(message: ChatMessage): void {
+    const text = this.chat.startEdit(message);
+
+    if (text === null) {
+      return;
+    }
+
+    this.draft.set(text);
+    this.touched.set(false);
+    queueMicrotask(() => this.input()?.nativeElement.focus());
+  }
+
   protected isLastAssistant(message: ChatMessage): boolean {
     const list = this.chat.messages();
 

@@ -48,7 +48,7 @@ namespace ChatService.Api.Agents
 
             You are talking to a store administrator. Rules for administrators:
             - You are read-only. You cannot add or change products, categories, stock or order statuses; tell the admin which admin page to use.
-            - Only help with administration: looking up orders, summarising recent orders, product stock and reorder levels, and the admin guide. Politely decline shopping help, product recommendations, and personal shopping or account questions.
+            - Only help with administration: looking up orders, summarising recent orders, listing catalog products and categories, product stock and reorder levels, and the admin guide. Politely decline shopping help, product recommendations, and personal shopping or account questions.
             - Never reveal customer ids or personal details.
             """;
 
@@ -60,6 +60,7 @@ namespace ChatService.Api.Agents
 
                 Your role: customer service.
                 - For order questions use lookup_order (or list_my_orders when the customer has no order number). If a tool says login_required, ask them to sign in first.
+                - When asked to list orders, or orders with a status (for example delivered), call list_my_orders with that status and a limit up to 20. Say how many orders match (totalMatches) and, if more exist than were returned, say only the newest were shown. The order cards are displayed automatically under your reply, so do not repeat every order; if none match, say so.
                 - If an order is not found for this account, say you could not find it on their account and suggest checking the number; do not say whether it exists for someone else.
                 - For store, checkout, account and policy questions call search_knowledge and answer only from the passages. If nothing relevant is found, say you do not have that information.
                 - Use escalate_to_human when the customer asks for a person, is upset, or needs refunds, damaged items, delivery problems or account help.
@@ -69,11 +70,13 @@ namespace ChatService.Api.Agents
         public static readonly AgentDefinition RecommendationAgent = new()
         {
             Name = Recommendation,
-            Tools = new[] { "search_products", "escalate_to_human" },
+            Tools = new[] { "search_products", "list_products", "list_categories", "escalate_to_human" },
             Instructions = CommonRules + ShopperRules + """
 
-                Your role: product recommendations.
-                - Always call search_products before recommending; recommend only products it returns, using their exact names and prices.
+                Your role: product recommendations and browsing.
+                - When the customer asks to list, show or browse products of a type or category (for example mobiles), call list_products with that keyword and report how many products match (totalMatches). The product cards are displayed automatically under your reply, so do not repeat every product; if more match than were returned, say so and suggest narrowing by price.
+                - When they ask what categories exist, call list_categories and name them with their product counts.
+                - For recommendations call search_products first; recommend only products it returns, using their exact names and prices.
                 - Ask one short clarifying question if the request is too vague to search (for example no product type).
                 - Explain briefly why each pick fits. Do not compare ratings or mention reviews, stock or discounts; this data is not available.
                 - If nothing matches, say so and suggest a broader search.
@@ -83,12 +86,14 @@ namespace ChatService.Api.Agents
         public static readonly AgentDefinition AdminAgent = new()
         {
             Name = Admin,
-            Tools = new[] { "lookup_order", "list_recent_orders", "get_product_inventory", "list_inventory", "search_admin_help" },
+            Tools = new[] { "lookup_order", "list_recent_orders", "list_products", "list_categories", "get_product_inventory", "list_inventory", "search_admin_help" },
             Instructions = CommonRules + AdminRules + """
 
                 Your role: admin assistant. Act like a capable operations assistant, not a help bot: when a question can be answered with live data, call the matching tool and give the answer directly. Do not tell the admin to open a page for something a tool can fetch. Present lists as short lines, one item per line, with the key numbers.
                 - For a specific order use lookup_order with its order number.
                 - For recent activity, counts per status or revenue use list_recent_orders, and report only the numbers it returns.
+                - For lists of orders with a status (for example delivered) call list_recent_orders with that status and a limit up to 20. Report matchingOrders; the order cards are displayed automatically under your reply, so do not repeat every order.
+                - For a list of catalog products of a type or category (for example "list all mobile products") call list_products with that keyword and report totalMatches; the product cards are displayed automatically under your reply, so do not repeat every product. For the category list call list_categories. This is a catalog listing, not a recommendation.
                 - For a product's stock quantity, reorder level or low-stock status use get_product_inventory with the product name (fix obvious typos), and report only the numbers it returns. This is an admin lookup, not a recommendation.
                 - For lists of products by reorder level, quantity or low stock use list_inventory ("less than 10" means reorder_level_below=10). Report totalMatches and the items returned; if totalMatches exceeds the items shown, say so.
                 - Use search_admin_help only for how-to questions about orders, products, import, bulk update, categories, inventory or the dashboard, and answer only from the passages.
@@ -105,13 +110,13 @@ namespace ChatService.Api.Agents
 
     public partial class AgentRouter
     {
-        [GeneratedRegex(@"\bORD-[A-Z0-9]{6,12}\b|\b(track|tracking|cancel|refund|return|exchange|where is my|my (\w+ )?orders?|(recent|latest|past|previous|delivered|shipped|pending|confirmed|processing|cancell?ed) orders?|orders? (history|status)|delivered|shipped|purchases?|purchased|bought|ordered|order status|password|otp|login|sign in|account|address|payment|shipping|delivery|contact|support|human|agent)\b", RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"\bORD-[A-Z0-9]{6,12}\b|\b(track|tracking|cancel|refund|return|exchange|where is my|my (\w+ )?orders?|(recent|latest|past|previous|delivered|shipped|pending|confirmed|processing|cancell?ed) orders?|orders|orders? (history|status)|delivered|shipped|purchases?|purchased|bought|ordered|order status|password|otp|login|sign in|account|address|payment|shipping|delivery|contact|support|human|agent)\b", RegexOptions.IgnoreCase)]
         private static partial Regex ServiceIntent();
 
-        [GeneratedRegex(@"\b(recommend|suggest|suggestion|looking for|gift|best|cheap|cheaper|budget|under|below|similar|alternative|compare|show me|do you (have|sell)|i (want|need) (a|an|some)|which (product|one)|buy)\b", RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"\b(recommend|suggest|suggestion|looking for|gift|best|cheap|cheaper|budget|under|below|similar|alternative|compare|show me|list|products?|categor(y|ies)|catalog|do you (have|sell)|i (want|need) (a|an|some)|which (product|one)|buy)\b", RegexOptions.IgnoreCase)]
         private static partial Regex ProductIntent();
 
-        [GeneratedRegex(@"\b(admin (panel|page|area|dashboard|console)|bulk (import|update|upload)|import (the )?products?|(add|create|edit|delete|remove) (a |an |the )?(new )?products?|(add|create|edit|delete) (a |an |the )?categor(y|ies)|manage (products|categories|inventory|orders)|(update|change|set) (the )?order status|inventory (management|levels?)|low stock|reorder level|revenue|sales (report|figures)|all (customers'?|users'?)? ?orders|other customers?)\b", RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"\b(admin (panel|page|area|dashboard|console)|bulk (import|update|upload)|import (the )?products?|(add|create|edit|delete|remove) (a |an |the )?(new )?products?|(add|create|edit|delete) (a |an |the )?categor(y|ies)|manage (products|categories|inventory|orders)|(update|change|set) (the )?order status|inventory (management|levels?)|low stock|reorder level|revenue|sales (report|figures)|all (customer|user)s?'?s? orders|other customers?)\b", RegexOptions.IgnoreCase)]
         private static partial Regex AdminIntent();
 
         [GeneratedRegex(@"\b(recommend\w*|suggest\w*|gift|looking for|cheaper|budget|do you (have|sell)|i (want|need) (a|an|some)|buy|my orders?|my cart|my account|my address|where is my|track my|cancel my|checkout|check out|forgot (my )?password)\b", RegexOptions.IgnoreCase)]

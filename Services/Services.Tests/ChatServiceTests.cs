@@ -84,6 +84,9 @@ public class ChatGovernanceTests
     [InlineData("which orders have shipped", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
     [InlineData("what did I purchase last month", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
     [InlineData("show me running shoes", AgentCatalog.Recommendation, AgentCatalog.Recommendation)]
+    [InlineData("list products related mobile", null, AgentCatalog.Recommendation)]
+    [InlineData("what categories do you have", null, AgentCatalog.Recommendation)]
+    [InlineData("list the orders with status delivered", AgentCatalog.Recommendation, AgentCatalog.CustomerService)]
     public void Router_picks_agent(string message, string? previous, string expected)
     {
         Assert.Equal(expected, new AgentRouter().Route(message, previous));
@@ -277,6 +280,7 @@ public class RoleSeparationTests
 
     [Theory]
     [InlineData("What does the Pending status mean?")]
+    [InlineData("list all orders with status delivered")]
     [InlineData("how do I cancel an order")]
     [InlineData("where is my order")]
     public void Shoppers_can_ask_normal_questions(string message)
@@ -419,5 +423,147 @@ public class OfflineResponderTests
         var unknown = new AgentContext();
         await responder.RespondAsync(AgentCatalog.CustomerServiceAgent, "zzzz qqqq", unknown, CancellationToken.None);
         Assert.True(unknown.Escalate);
+    }
+}
+
+public class ChatListingTests
+{
+    private sealed class NoModel : IEmbeddingModel
+    {
+        public bool IsConfigured => false;
+
+        public Task<float[][]> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class Canned(string json) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+            });
+    }
+
+    private static async Task<KnowledgeIndex> CatalogAsync()
+    {
+        var index = new KnowledgeIndex(new NoModel(), Options.Create(new KnowledgeOptions { MinKeywordScore = 0.5 }), NullLogger<KnowledgeIndex>.Instance);
+
+        KnowledgeChunk Product(int id, string name, string category, string description, decimal price) => new()
+        {
+            Id = $"product:{id}", Kind = "product", Source = "catalog", Title = name,
+            Text = $"Category: {category}. {description}", ProductId = id, Price = price, Category = category
+        };
+
+        await index.ReplaceSourceAsync("catalog", new List<KnowledgeChunk>
+        {
+            Product(1, "Nova X Smartphone", "Mobiles", "6.5 inch display", 20000),
+            Product(2, "Pixel Lite", "Mobiles", "Compact phone", 15000),
+            Product(3, "Phone Case", "Accessories", "Fits most mobile phones", 500),
+            Product(4, "Gaming Laptop", "Laptops", "16 GB RAM", 80000)
+        }, CancellationToken.None);
+
+        return index;
+    }
+
+    [Fact]
+    public async Task List_products_returns_every_product_in_a_category_cheapest_first()
+    {
+        var tool = new ListProductsTool(await CatalogAsync());
+        var context = new AgentContext();
+
+        var payload = await tool.ExecuteAsync(new JsonObject { ["query"] = "list products related mobile" }, context, CancellationToken.None);
+
+        Assert.Equal(new[] { "Pixel Lite", "Nova X Smartphone" }, context.Products.Select(p => p.Name));
+        Assert.Contains("\"totalMatches\":2", payload);
+    }
+
+    [Fact]
+    public async Task List_products_applies_price_limits_and_reports_no_match()
+    {
+        var tool = new ListProductsTool(await CatalogAsync());
+        var context = new AgentContext();
+
+        await tool.ExecuteAsync(new JsonObject { ["query"] = "mobile", ["max_price"] = 16000m }, context, CancellationToken.None);
+
+        Assert.Equal(new[] { "Pixel Lite" }, context.Products.Select(p => p.Name));
+
+        var none = await tool.ExecuteAsync(new JsonObject { ["query"] = "refrigerator" }, context, CancellationToken.None);
+
+        Assert.Contains("no_matching_products", none);
+        Assert.Empty(context.Products);
+    }
+
+    [Fact]
+    public async Task List_categories_counts_products()
+    {
+        var payload = await new ListCategoriesTool(await CatalogAsync())
+            .ExecuteAsync(new JsonObject(), new AgentContext(), CancellationToken.None);
+
+        Assert.Contains("\"name\":\"Mobiles\",\"products\":2", payload);
+    }
+
+    private static ListMyOrdersTool OrdersTool() => new(new OrderLookupClient(
+        new HttpClient(new Canned("""
+            [
+              {"orderNumber":"ORD-AAAAAA01","status":"Delivered","totalAmount":100,"orderDate":"2026-10-01T10:00:00","items":[{"quantity":1,"productName":"Mug"}]},
+              {"orderNumber":"ORD-AAAAAA02","status":"Pending","totalAmount":200,"orderDate":"2026-10-02T10:00:00","items":[{"quantity":2,"productName":"Cup"}]},
+              {"orderNumber":"ORD-AAAAAA03","status":"Delivered","totalAmount":300,"orderDate":"2026-10-03T10:00:00","items":[{"quantity":1,"productName":"Pan"}]}
+            ]
+            """)),
+        Options.Create(new ServiceUrlOptions())));
+
+    [Fact]
+    public async Task List_my_orders_returns_all_orders_with_the_status_newest_first()
+    {
+        var context = new AgentContext { Role = ChatRole.Customer, BearerToken = "t" };
+
+        var payload = await OrdersTool().ExecuteAsync(new JsonObject { ["status"] = "delivered" }, context, CancellationToken.None);
+
+        Assert.Equal(new[] { "ORD-AAAAAA03", "ORD-AAAAAA01" }, context.Orders.Select(o => o.OrderNumber));
+        Assert.Contains("\"totalMatches\":2", payload);
+    }
+
+    [Fact]
+    public async Task Offline_assistant_lists_orders_by_status_and_products_by_type()
+    {
+        var index = await CatalogAsync();
+        var tools = new IAgentTool[] { OrdersTool(), new ListProductsTool(index), new ListCategoriesTool(index) };
+        var runner = new AgentRunner(new NoChat(), tools, Options.Create(new GovernanceOptions()));
+        var responder = new OfflineResponder(runner);
+
+        var orders = new AgentContext { Role = ChatRole.Customer, BearerToken = "t" };
+        var orderReply = await responder.RespondAsync(AgentCatalog.CustomerServiceAgent, "list the orders with status delivered", orders, CancellationToken.None);
+
+        Assert.Equal("You have 2 delivered orders.", orderReply.Reply);
+        Assert.Equal(2, orders.Orders.Count);
+
+        var products = new AgentContext { Role = ChatRole.Customer };
+        var productReply = await responder.RespondAsync(AgentCatalog.RecommendationAgent, "list products related mobile", products, CancellationToken.None);
+
+        Assert.Equal("I found 2 matching products.", productReply.Reply);
+
+        var categories = new AgentContext { Role = ChatRole.Customer };
+        var categoryReply = await responder.RespondAsync(AgentCatalog.RecommendationAgent, "list categories", categories, CancellationToken.None);
+
+        Assert.Contains("Mobiles (2)", categoryReply.Reply);
+    }
+
+    private sealed class NoChat : IChatModel
+    {
+        public bool IsConfigured => false;
+
+        public Task<ModelReply> CompleteAsync(IReadOnlyList<JsonObject> messages, JsonArray? tools, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+}
+
+public class AdminListingTests
+{
+    [Fact]
+    public void Admin_agent_can_list_catalog_products()
+    {
+        Assert.Contains("list_products", AgentCatalog.AdminAgent.Tools);
+        Assert.Contains(ChatRole.Admin, new ListProductsTool(null!).Roles);
     }
 }

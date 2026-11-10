@@ -26,6 +26,7 @@ export const routes: Routes = [
   // Purchasing
   { path: 'cart', loadComponent: () => import('./cart/cart').then(m => m.CartComponent) },
   { path: 'checkout', loadComponent: () => import('./checkout/checkout').then(m => m.Checkout) },
+  { path: 'checkout/payment', loadComponent: () => import('./checkout/payment-method/payment-method').then(m => m.PaymentMethodPage) },
   { path: 'orders', loadComponent: () => import('./orders/my-orders/my-orders').then(m => m.MyOrders) },
   { path: 'orders/:id', loadComponent: () => import('./orders/order-details/order-details').then(m => m.OrderDetails) },
   { path: 'order-confirmation/:id', loadComponent: () => import('./orders/order-confirmation/order-confirmation').then(m => m.OrderConfirmation) },

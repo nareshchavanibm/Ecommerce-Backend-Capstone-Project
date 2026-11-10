@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace UserService.Api.Middleware
 {
@@ -43,6 +45,10 @@ namespace UserService.Api.Middleware
 
                 UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
 
+                // A unique index rejected a concurrent duplicate (for example the same email registered twice).
+                DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 } }
+                    => StatusCodes.Status409Conflict,
+
                 _ => StatusCodes.Status500InternalServerError
             };
 
@@ -50,7 +56,9 @@ namespace UserService.Api.Middleware
             {
                 message = context.Response.StatusCode == StatusCodes.Status500InternalServerError
                     ? "An unexpected error occurred. Please try again."
-                    : exception.Message
+                    : context.Response.StatusCode == StatusCodes.Status409Conflict
+                        ? "This record already exists."
+                        : exception.Message
             };
 
             await context.Response.WriteAsync(

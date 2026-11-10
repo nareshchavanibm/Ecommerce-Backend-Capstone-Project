@@ -26,6 +26,7 @@ export interface ChatMessage {
   error?: boolean;
   products?: ChatProduct[];
   order?: ChatOrder | null;
+  orders?: ChatOrder[];
   escalate?: boolean;
   supportEmail?: string | null;
   rated?: 'up' | 'down';
@@ -37,6 +38,7 @@ interface ChatResponse {
   agent: string;
   products: ChatProduct[];
   order: ChatOrder | null;
+  orders?: ChatOrder[];
   escalate: boolean;
   supportEmail: string | null;
 }
@@ -54,7 +56,7 @@ const DEFAULT_CONFIG: ChatConfig = {
   role: 'anonymous',
   title: 'Shopping assistant',
   intro: 'Ask about an order, how the store works, or what to buy. Never share card numbers or passwords here.',
-  suggestions: ['Where is my order?', 'How do I cancel an order?', 'Recommend a gift under 1000']
+  suggestions: ['Where is my order?', 'List my delivered orders', 'List all mobile products', 'Recommend a gift under 1000']
 };
 
 const HISTORY_TURNS = 10;
@@ -134,6 +136,7 @@ export class ChatService {
           text: response.reply,
           products: response.products,
           order: response.order,
+          orders: response.orders ?? [],
           escalate: response.escalate,
           supportEmail: response.supportEmail
         });
@@ -165,6 +168,19 @@ export class ChatService {
     this.messages.set([]);
     this.conversationId = null;
     this.agent = null;
+  }
+
+  // Drops a sent message and every reply after it so the edited text can be sent in its place.
+  startEdit(message: ChatMessage): string | null {
+    const index = this.messages().findIndex(m => m.id === message.id);
+
+    if (this.busy() || index < 0 || message.role !== 'user') {
+      return null;
+    }
+
+    this.messages.update(list => list.slice(0, index));
+
+    return message.text;
   }
 
   private append(message: Omit<ChatMessage, 'id'>): void {

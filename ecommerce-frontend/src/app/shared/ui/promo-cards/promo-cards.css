@@ -72,20 +72,9 @@ ul {
   position: relative;
   display: grid;
   place-items: center;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--color-bg-subtle);
-}
-
-/* Fills any space the picture leaves (only when a tall picture hits the height cap), so there are never empty bars */
-.card__backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(18px) brightness(0.92);
-  transform: scale(1.2);
-  pointer-events: none;
 }
 
 /* Cards without an image get a plain panel that absorbs any spare height, so the row stays even */
@@ -107,21 +96,14 @@ ul {
   overflow-wrap: anywhere;
 }
 
-/* Full card width at the image's own proportions: nothing is cropped and there are no side bars.
-   Only a very tall image is capped, and it is then fitted inside rather than cut. */
+/* Fixed frame filled edge to edge so every card is the same size */
 .card__img {
-  position: relative;
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  max-height: 15rem;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;
   transition: transform 500ms ease;
-}
-
-/* Ad cards are wider, so their pictures get more height before being capped */
-.cards--ads .card__img {
-  max-height: 18rem;
 }
 
 .card:hover .card__img {

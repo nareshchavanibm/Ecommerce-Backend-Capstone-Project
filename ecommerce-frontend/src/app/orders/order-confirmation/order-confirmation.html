@@ -19,7 +19,7 @@
       } @else if (paid()) {
         <h1 class="head__title">Thank you, your order is confirmed</h1>
         @if (cashOnDelivery()) {
-          <p class="head__text">Order {{ order.orderNumber }} is confirmed. You will pay {{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }} in cash on delivery.</p>
+          <p class="head__text">Order {{ order.orderNumber }} is confirmed. You will pay {{ order.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }} on delivery, in cash or by UPI.</p>
         } @else {
           <p class="head__text">We have received your payment for order {{ order.orderNumber }}.</p>
         }

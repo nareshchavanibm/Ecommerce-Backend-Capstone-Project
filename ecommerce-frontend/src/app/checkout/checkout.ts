@@ -1,6 +1,5 @@
 import { CurrencyPipe, isPlatformBrowser } from '@angular/common';
 import { Component, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 
@@ -9,6 +8,7 @@ import { AccountService } from '../core/services/account';
 import { CartService } from '../core/services/cart';
 import { OrderService } from '../core/services/order';
 import { PaymentService } from '../core/services/payment';
+import { PaymentSelection } from '../core/services/payment-selection';
 import { Address } from '../shared/models/account.model';
 import { Cart, CartItem } from '../shared/models/cart.model';
 import { Order } from '../shared/models/order.model';
@@ -26,15 +26,9 @@ const PENDING_ORDER_KEY = 'checkout.pendingOrderNumber';
 const SUCCESS_STATUSES = ['completed', 'successful', 'succeeded', 'paid'];
 const PENDING_STATUSES = ['pending', 'processing', 'initiated'];
 
-export const PAYMENT_METHODS = [
-  { value: 'Card', label: 'Card' },
-  { value: 'UPI', label: 'UPI' },
-  { value: 'CashOnDelivery', label: 'Cash on delivery' }
-];
-
 @Component({
   selector: 'app-checkout',
-  imports: [ReactiveFormsModule, RouterLink, CurrencyPipe, Alert, Button, Skeleton],
+  imports: [RouterLink, CurrencyPipe, Alert, Button, Skeleton],
   templateUrl: './checkout.html',
   styleUrl: './checkout.css'
 })
@@ -54,9 +48,14 @@ export class Checkout implements OnInit {
 
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  protected readonly methods = PAYMENT_METHODS;
+  private readonly selection = inject(PaymentSelection);
 
-  protected readonly method = new FormControl<string>('', { nonNullable: true, validators: [Validators.required] });
+  // Chosen on the separate payment page.
+  protected readonly method = this.selection.method;
+
+  protected readonly methodSummary = this.selection.summary;
+
+  protected readonly methodMissing = signal(false);
 
   protected readonly email = this.authService.isLoggedIn() ? this.authService.getEmail() : null;
 
@@ -149,12 +148,12 @@ export class Checkout implements OnInit {
       return;
     }
 
-    this.method.markAsTouched();
-
-    if (this.method.invalid) {
+    if (!this.method()) {
+      this.methodMissing.set(true);
       return;
     }
 
+    this.methodMissing.set(false);
     this.errorMessage.set('');
     this.infoMessage.set('');
 
@@ -206,10 +205,8 @@ export class Checkout implements OnInit {
       return;
     }
 
-    this.method.markAsTouched();
-
-    if (this.method.invalid) {
-      this.stage.set('review');
+    if (!this.method()) {
+      this.methodMissing.set(true);
       return;
     }
 
@@ -259,7 +256,7 @@ export class Checkout implements OnInit {
 
   private pay(orderNumber: string): void {
 
-    this.paymentService.processPayment(orderNumber, this.method.value).subscribe({
+    this.paymentService.processPayment(orderNumber, this.method()).subscribe({
       next: payment => this.handlePayment(orderNumber, payment),
       error: error => {
         const message: string | undefined = error.error?.message;
@@ -317,6 +314,7 @@ export class Checkout implements OnInit {
     this.cartService.clearCart().pipe(
       finalize(() => {
         this.clearPending();
+        this.selection.clear();
         this.cartService.count.set(0);
         this.router.navigate(['/order-confirmation', orderNumber]);
       })

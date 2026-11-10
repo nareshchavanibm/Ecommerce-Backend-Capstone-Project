@@ -56,6 +56,10 @@
           <span class="visually-hidden">{{ message.role === 'user' ? 'You said:' : 'Assistant said:' }}</span>
           <p class="msg__text">{{ message.text }}</p>
 
+          @if (message.role === 'user' && !chat.busy()) {
+            <button type="button" class="link msg__edit" (click)="edit(message)">Edit</button>
+          }
+
           @if (message.order; as order) {
             <a class="order"
                [routerLink]="chat.config().role === 'admin' ? ['/admin/orders/details', order.orderNumber] : ['/orders', order.orderNumber]"
@@ -69,6 +73,27 @@
               </span>
               <span class="order__items">{{ order.items.join(', ') }}</span>
             </a>
+          }
+
+          @if (message.orders && message.orders.length > 0) {
+            <ul class="orders">
+              @for (listed of message.orders; track listed.orderNumber) {
+                <li>
+                  <a class="order"
+                     [routerLink]="chat.config().role === 'admin' ? ['/admin/orders/details', listed.orderNumber] : ['/orders', listed.orderNumber]"
+                     (click)="open.set(false)">
+                    <span class="order__head">
+                      <strong>{{ listed.orderNumber }}</strong>
+                      <span class="order__status">{{ listed.status }}</span>
+                    </span>
+                    <span class="order__meta">
+                      {{ listed.orderDate | date: 'MMM d, y' }} &middot; {{ listed.totalAmount | currency: 'INR' : 'symbol' : '1.0-2' }}
+                    </span>
+                    <span class="order__items">{{ listed.items.join(', ') }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
           }
 
           @if (message.products && message.products.length > 0) {

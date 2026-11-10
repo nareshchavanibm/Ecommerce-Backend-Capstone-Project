@@ -14,10 +14,20 @@ builder.AddObservability();
 // =========================
 builder.Services.AddCors(options =>
 {
+    var origins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+
+    if (origins.Length == 0)
+    {
+        throw new InvalidOperationException(
+            "Cors:AllowedOrigins is not configured.");
+    }
+
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -71,11 +81,21 @@ builder.Services.AddAuthorization();
 // =========================
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("GatewayPolicy", limiterOptions =>
+    // One budget per client address (not shared by everyone); sign-in endpoints get a much smaller one.
+    options.AddPolicy("GatewayPolicy", context =>
     {
-        limiterOptions.PermitLimit = 100;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueLimit = 0;
+        var client = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        var isAuth = context.Request.Path.StartsWithSegments("/api/auth");
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            isAuth ? "auth:" + client : "api:" + client,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = isAuth ? 20 : 300,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
     });
 
     options.RejectionStatusCode =
@@ -93,6 +113,11 @@ builder.Services
 var app = builder.Build();
 
 app.UseObservability();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 // =========================
 // Security Headers

@@ -1,7 +1,7 @@
 <article class="card">
   <div class="card__media">
     @if (image) {
-      <img [src]="image" [alt]="product().name" width="400" height="300" loading="lazy" (error)="imageFailed.set(true)" />
+      <img class="card__img" [src]="image" [alt]="product().name" width="400" height="300" loading="lazy" (error)="imageFailed.set(true)" />
     } @else {
       <svg class="card__placeholder" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false">
         <rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2" />

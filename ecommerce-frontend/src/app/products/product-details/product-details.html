@@ -27,7 +27,7 @@
       <div class="gallery">
         @if (image()) {
           <button type="button" class="gallery__main gallery__main--zoom" [attr.aria-label]="'Enlarge image of ' + item.name" (click)="zoomOpen.set(true)">
-            <img [src]="image()" [alt]="item.name" width="800" height="800" fetchpriority="high" (error)="imageFailed.set(true)" />
+            <img class="gallery__img" [src]="image()" [alt]="item.name" width="800" height="800" fetchpriority="high" (error)="imageFailed.set(true)" />
             <span class="gallery__hint" aria-hidden="true">Click to enlarge</span>
           </button>
         } @else {

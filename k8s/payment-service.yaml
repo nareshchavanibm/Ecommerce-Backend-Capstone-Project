@@ -1,33 +1,70 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: payment-service
+  name: paymentservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: payment-service
+      app: paymentservice
   template:
     metadata:
       labels:
-        app: payment-service
+        app: paymentservice
     spec:
       containers:
-        - name: payment-service
-          image: ghcr.io/REPO_OWNER/payment-service:latest
+        - name: paymentservice
+          image: ghcr.io/REPO_OWNER/ecommerce-paymentservice:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          imagePullPolicy: Always
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ASPNETCORE_URLS
+              value: http://+:8080
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: MSSQL_SA_PASSWORD }
+            - name: ConnectionStrings__DefaultConnection
+              value: Server=sqlserver,1433;Database=ECommercePaymentDb;User Id=sa;Password=$(MSSQL_SA_PASSWORD);TrustServerCertificate=True;
+            - name: Services__OrderServiceUrl
+              value: http://orderservice:8080
+            - name: Internal__ApiKey
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: INTERNAL_API_KEY }
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_KEY }
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_ISSUER }
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef: { name: ecommerce-secrets, key: JWT_AUDIENCE }
+          startupProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8080 }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8080 }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { memory: 512Mi }
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: payment-service
+  name: paymentservice
 spec:
   selector:
-    app: payment-service
+    app: paymentservice
   ports:
     - protocol: TCP
-      port: 80
+      port: 8080
       targetPort: 8080
   type: ClusterIP
