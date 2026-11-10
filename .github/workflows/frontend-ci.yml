@@ -34,8 +34,11 @@ jobs:
 
       - run: npm ci
 
+      # The development build used by ng test needs this git-ignored file.
       - name: Test
-        run: npm test -- --watch=false
+        run: |
+          cp src/environments/environment.example.ts src/environments/environment.local.ts
+          npm test -- --watch=false
 
       - name: Build
         run: npm run build -- --configuration production
