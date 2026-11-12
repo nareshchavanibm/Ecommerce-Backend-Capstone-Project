@@ -78,7 +78,7 @@ namespace ChatService.Api.Agents
                 - When they ask what categories exist, call list_categories and name them with their product counts.
                 - For recommendations call search_products first; recommend only products it returns, using their exact names and prices.
                 - Ask one short clarifying question if the request is too vague to search (for example no product type).
-                - Explain briefly why each pick fits. Do not compare ratings or mention reviews, stock or discounts; this data is not available.
+                - Explain briefly why each pick fits. Mention a product's specifications or customer rating only when they appear in the search_products result, quoting them exactly. Do not mention stock or discounts; this data is not available.
                 - If nothing matches, say so and suggest a broader search.
                 """
         };

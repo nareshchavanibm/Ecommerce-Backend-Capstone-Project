@@ -567,3 +567,102 @@ public class AdminListingTests
         Assert.Contains(ChatRole.Admin, new ListProductsTool(null!).Roles);
     }
 }
+
+public class CatalogEnrichmentTests
+{
+    private sealed class NoModel : IEmbeddingModel
+    {
+        public bool IsConfigured => false;
+
+        public Task<float[][]> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class Routed(Func<string, (int Status, string Body)> route) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var (status, body) = route(request.RequestUri!.PathAndQuery);
+
+            return Task.FromResult(new HttpResponseMessage((System.Net.HttpStatusCode)status)
+            {
+                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+            });
+        }
+    }
+
+    private sealed class Factory(HttpMessageHandler handler) : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name) => new(handler, disposeHandler: false);
+    }
+
+    private const string Page = """
+        {"totalPages":1,"items":[
+          {"id":1,"name":"Nova X","categoryName":"Mobiles","description":"Flagship phone","price":20000,"isActive":true},
+          {"id":2,"name":"Pixel Lite","categoryName":"Mobiles","description":"Compact phone","price":15000,"isActive":true}
+        ]}
+        """;
+
+    private static (KnowledgeIndexer Indexer, KnowledgeIndex Index) Build(Func<string, (int, string)> route)
+    {
+        var options = Options.Create(new KnowledgeOptions { MinKeywordScore = 0.5 });
+        var index = new KnowledgeIndex(new NoModel(), options, NullLogger<KnowledgeIndex>.Instance);
+
+        var indexer = new KnowledgeIndexer(
+            index,
+            new Factory(new Routed(route)),
+            Options.Create(new ServiceUrlOptions()),
+            options,
+            NullLogger<KnowledgeIndexer>.Instance);
+
+        return (indexer, index);
+    }
+
+    [Fact]
+    public void BuildProductText_appends_specifications_and_rating_only_when_present()
+    {
+        Assert.Equal("Category: Mobiles. Plain.", KnowledgeIndexer.BuildProductText("Mobiles", "Plain.", null, null));
+
+        var text = KnowledgeIndexer.BuildProductText("Mobiles", "Phone.", "Display Size: 6.5 in.", (4.25, 1));
+
+        Assert.Contains("Specifications: Display Size: 6.5 in.", text);
+        Assert.Contains("Customer rating: 4.3 out of 5 from 1 review.", text);
+    }
+
+    [Fact]
+    public async Task Catalog_index_includes_specifications_and_ratings_so_they_are_searchable()
+    {
+        var (indexer, index) = Build(path => path switch
+        {
+            var p when p.StartsWith("/api/Product/paged") => (200, Page),
+            "/api/Product/1" => (200, """{"id":1,"specifications":[{"group":"Display","name":"Size","value":"6.5 in"},{"group":null,"name":"RAM","value":"12 GB"}]}"""),
+            "/api/Product/2" => (200, """{"id":2,"specifications":[]}"""),
+            var p when p.StartsWith("/api/Review/summary") => (200, """[{"productId":1,"average":4.5,"count":8,"distribution":[0,0,1,2,5]}]"""),
+            _ => (404, "{}")
+        });
+
+        await indexer.LoadCatalogAsync(CancellationToken.None);
+
+        var nova = index.Chunks("product").Single(c => c.ProductId == 1);
+
+        Assert.Contains("Display Size: 6.5 in", nova.Text);
+        Assert.Contains("RAM: 12 GB", nova.Text);
+        Assert.Contains("Customer rating: 4.5 out of 5 from 8 reviews.", nova.Text);
+        Assert.DoesNotContain("Specifications", index.Chunks("product").Single(c => c.ProductId == 2).Text);
+
+        var hits = await index.SearchAsync("12 GB RAM", "product", 3, CancellationToken.None);
+
+        Assert.Equal("Nova X", hits[0].Chunk.Title);
+    }
+
+    [Fact]
+    public async Task Catalog_still_indexes_when_specification_and_review_calls_fail()
+    {
+        var (indexer, index) = Build(path => path.StartsWith("/api/Product/paged") ? (200, Page) : (500, "{}"));
+
+        await indexer.LoadCatalogAsync(CancellationToken.None);
+
+        Assert.Equal(2, index.Chunks("product").Count);
+        Assert.Equal("Category: Mobiles. Flagship phone", index.Chunks("product").Single(c => c.ProductId == 1).Text);
+    }
+}

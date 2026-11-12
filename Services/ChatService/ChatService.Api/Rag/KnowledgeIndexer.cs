@@ -135,10 +135,12 @@ namespace ChatService.Api.Rag
             return chunks;
         }
 
+        private sealed record CatalogItem(int Id, string Name, string Category, string Description, decimal Price, string? Image);
+
         public async Task LoadCatalogAsync(CancellationToken cancellationToken)
         {
             var http = _httpFactory.CreateClient("catalog");
-            var chunks = new List<KnowledgeChunk>();
+            var items = new List<CatalogItem>();
 
             for (var page = 1; page <= 50; page++)
             {
@@ -165,18 +167,7 @@ namespace ChatService.Api.Rag
                     var price = item.GetProperty("price").GetDecimal();
                     var image = item.TryGetProperty("imageUrl", out var i) && i.ValueKind == JsonValueKind.String ? i.GetString() : null;
 
-                    chunks.Add(new KnowledgeChunk
-                    {
-                        Id = $"product:{id}",
-                        Kind = "product",
-                        Source = "catalog",
-                        Title = name,
-                        Text = $"Category: {category}. {description}",
-                        ProductId = id,
-                        Price = price,
-                        ImageUrl = image,
-                        Category = category
-                    });
+                    items.Add(new CatalogItem(id, name, category, description, price, image));
                 }
 
                 var totalPages = doc.RootElement.TryGetProperty("totalPages", out var tp) ? tp.GetInt32() : page;
@@ -188,11 +179,168 @@ namespace ChatService.Api.Rag
             }
 
             // Keep the previous snapshot when the catalog call returned nothing.
-            if (chunks.Count > 0)
+            if (items.Count == 0)
             {
-                await _index.ReplaceSourceAsync("catalog", chunks, cancellationToken);
-                _logger.LogInformation("Indexed {Count} catalog products.", chunks.Count);
+                return;
             }
+
+            var specifications = await LoadSpecificationsAsync(http, items, cancellationToken);
+            var ratings = await LoadRatingsAsync(http, items, cancellationToken);
+
+            var chunks = items.Select(item => new KnowledgeChunk
+            {
+                Id = $"product:{item.Id}",
+                Kind = "product",
+                Source = "catalog",
+                Title = item.Name,
+                Text = BuildProductText(
+                    item.Category,
+                    item.Description,
+                    specifications.GetValueOrDefault(item.Id),
+                    ratings.GetValueOrDefault(item.Id)),
+                ProductId = item.Id,
+                Price = item.Price,
+                ImageUrl = item.Image,
+                Category = item.Category
+            }).ToList();
+
+            await _index.ReplaceSourceAsync("catalog", chunks, cancellationToken);
+            _logger.LogInformation(
+                "Indexed {Count} catalog products ({Specs} with specifications, {Rated} with ratings).",
+                chunks.Count, specifications.Count, ratings.Count);
+        }
+
+        public static string BuildProductText(
+            string category,
+            string description,
+            string? specifications,
+            (double Average, int Count)? rating)
+        {
+            var text = new StringBuilder($"Category: {category}. {description}");
+
+            if (!string.IsNullOrWhiteSpace(specifications))
+            {
+                text.Append(" Specifications: ").Append(specifications);
+            }
+
+            if (rating is { Count: > 0 } r)
+            {
+                text.Append(" Customer rating: ")
+                    .Append(r.Average.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))
+                    .Append(" out of 5 from ").Append(r.Count)
+                    .Append(r.Count == 1 ? " review." : " reviews.");
+            }
+
+            return text.ToString();
+        }
+
+        // Specifications are only returned by the single-product endpoint, so fetch them a few at a time.
+        private async Task<Dictionary<int, string>> LoadSpecificationsAsync(
+            HttpClient http,
+            List<CatalogItem> items,
+            CancellationToken cancellationToken)
+        {
+            var result = new System.Collections.Concurrent.ConcurrentDictionary<int, string>();
+            var baseUrl = _services.ProductServiceUrl.TrimEnd('/');
+
+            await Parallel.ForEachAsync(
+                items,
+                new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = cancellationToken },
+                async (item, token) =>
+                {
+                    try
+                    {
+                        using var response = await http.GetAsync($"{baseUrl}/api/Product/{item.Id}", token);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            return;
+                        }
+
+                        using var doc = await JsonDocument.ParseAsync(
+                            await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
+
+                        if (!doc.RootElement.TryGetProperty("specifications", out var list) ||
+                            list.ValueKind != JsonValueKind.Array)
+                        {
+                            return;
+                        }
+
+                        var parts = new List<string>();
+
+                        foreach (var spec in list.EnumerateArray())
+                        {
+                            var name = spec.TryGetProperty("name", out var n) ? n.GetString() : null;
+                            var value = spec.TryGetProperty("value", out var v) ? v.GetString() : null;
+                            var group = spec.TryGetProperty("group", out var g) ? g.GetString() : null;
+
+                            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+                            {
+                                continue;
+                            }
+
+                            parts.Add(string.IsNullOrWhiteSpace(group) ? $"{name}: {value}" : $"{group} {name}: {value}");
+                        }
+
+                        if (parts.Count > 0)
+                        {
+                            result[item.Id] = string.Join("; ", parts) + ".";
+                        }
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException && !token.IsCancellationRequested)
+                    {
+                        _logger.LogDebug(ex, "Specifications unavailable for product {ProductId}.", item.Id);
+                    }
+                });
+
+            return new Dictionary<int, string>(result);
+        }
+
+        // Review service is optional: a failure just leaves products without ratings.
+        private async Task<Dictionary<int, (double Average, int Count)>> LoadRatingsAsync(
+            HttpClient http,
+            List<CatalogItem> items,
+            CancellationToken cancellationToken)
+        {
+            var result = new Dictionary<int, (double, int)>();
+            var baseUrl = _services.ReviewServiceUrl.TrimEnd('/');
+
+            // The summary endpoint accepts at most 50 ids per call.
+            foreach (var batch in items.Select(i => i.Id).Chunk(50))
+            {
+                try
+                {
+                    using var response = await http.GetAsync(
+                        $"{baseUrl}/api/Review/summary?productIds={string.Join(',', batch)}", cancellationToken);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    using var doc = await JsonDocument.ParseAsync(
+                        await response.Content.ReadAsStreamAsync(cancellationToken),
+                        cancellationToken: cancellationToken);
+
+                    foreach (var summary in doc.RootElement.EnumerateArray())
+                    {
+                        var count = summary.GetProperty("count").GetInt32();
+
+                        if (count > 0)
+                        {
+                            result[summary.GetProperty("productId").GetInt32()] =
+                                (summary.GetProperty("average").GetDouble(), count);
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is HttpRequestException or JsonException or KeyNotFoundException or InvalidOperationException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(ex, "Ratings unavailable; indexing products without them.");
+                    break;
+                }
+            }
+
+            return result;
         }
     }
 }

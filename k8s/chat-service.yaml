@@ -27,6 +27,8 @@ spec:
               value: http://productservice:8080
             - name: Services__OrderServiceUrl
               value: http://orderservice:8080
+            - name: Services__ReviewServiceUrl
+              value: http://reviewservice:8080
             - name: Foundry__Endpoint
               valueFrom:
                 configMapKeyRef: { name: ecommerce-config, key: FOUNDRY_ENDPOINT }

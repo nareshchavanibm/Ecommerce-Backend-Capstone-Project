@@ -35,6 +35,8 @@ namespace ChatService.Api.Options
         public string ProductServiceUrl { get; set; } = "http://productservice:8080";
 
         public string OrderServiceUrl { get; set; } = "http://orderservice:8080";
+
+        public string ReviewServiceUrl { get; set; } = "http://reviewservice:8080";
     }
 
     public class GovernanceOptions
